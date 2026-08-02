@@ -5,6 +5,15 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "prisma"],
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/uk",
+        permanent: false,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
