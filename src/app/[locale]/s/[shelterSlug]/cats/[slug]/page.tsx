@@ -4,6 +4,10 @@ import { Link } from "@/i18n/navigation";
 import { SafeImage } from "@/components/shared/safe-image";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
 import { AnimalProfileActionsLoader } from "@/components/animal/animal-profile-actions-loader";
+import {
+  AnimalPhotoLightboxRoot,
+  AnimalPhotoLightboxTrigger,
+} from "@/components/animal/animal-photo-lightbox";
 import { FundingProgress } from "@/components/animal/funding-progress";
 import { formatAnimalAge } from "@/lib/animal-age";
 import {
@@ -95,8 +99,17 @@ export default async function CatProfilePage({
   const funding = await getAnimalFunding(animal.id);
   const photos = toMediaItems(animal.media);
   const cover = photos.find((p) => p.isCover) ?? photos[0];
+  const coverIndex = cover ? photos.findIndex((p) => p.id === cover.id) : 0;
   const gallery = photos.filter((p) => p.id !== cover?.id);
   const age = formatAnimalAge(animal.birthDate, locale);
+
+  const lightboxLabels = {
+    close: tp("closeGallery"),
+    prev: tp("prevPhoto"),
+    next: tp("nextPhoto"),
+    photoCounter: tp("photoCounter"),
+    openGallery: tp("openGallery"),
+  };
 
   const healthItems = [
     { ok: animal.vaccinated, label: tp("vaccinated") },
@@ -112,16 +125,27 @@ export default async function CatProfilePage({
         ← {tp("backToCatalog")}
       </Link>
 
-      <article className="mt-6 overflow-hidden rounded-2xl border border-border-cool bg-card shadow-sm">
-        <div className="grid lg:grid-cols-[340px_1fr]">
-          <div className="overflow-hidden border-b border-border-cool lg:border-b-0 lg:border-r">
-            <AnimalCardImage
-              src={cover?.url ?? null}
-              name={animal.name}
-              objectFit="cover"
-              className="aspect-[3/4] w-full"
-            />
-          </div>
+      <AnimalPhotoLightboxRoot
+        photos={photos}
+        animalName={animal.name}
+        labels={lightboxLabels}
+      >
+        <article className="mt-6 overflow-hidden rounded-2xl border border-border-cool bg-card shadow-sm">
+          <div className="grid lg:grid-cols-[340px_1fr]">
+            <div className="overflow-hidden border-b border-border-cool lg:border-b-0 lg:border-r">
+              <AnimalPhotoLightboxTrigger
+                index={coverIndex}
+                disabled={photos.length === 0}
+                className="block w-full"
+              >
+                <AnimalCardImage
+                  src={cover?.url ?? null}
+                  name={animal.name}
+                  objectFit="cover"
+                  className="aspect-[3/4] w-full"
+                />
+              </AnimalPhotoLightboxTrigger>
+            </div>
 
           <div className="p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -224,18 +248,23 @@ export default async function CatProfilePage({
                 {tp("gallery")}
               </h2>
               <ul className="mt-3 flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory">
-                {gallery.map((photo) => (
-                  <li
-                    key={photo.id}
-                    className="aspect-[3/4] w-24 shrink-0 snap-start overflow-hidden rounded-lg border border-border-cool bg-surface-stone sm:w-28"
-                  >
-                    <SafeImage
-                      src={photo.url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </li>
-                ))}
+                {gallery.map((photo) => {
+                  const photoIndex = photos.findIndex((p) => p.id === photo.id);
+                  return (
+                    <li key={photo.id} className="shrink-0 snap-start">
+                      <AnimalPhotoLightboxTrigger
+                        index={photoIndex}
+                        className="block aspect-[3/4] w-24 snap-start overflow-hidden rounded-lg border border-border-cool bg-surface-stone sm:w-28"
+                      >
+                        <SafeImage
+                          src={photo.url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </AnimalPhotoLightboxTrigger>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -270,6 +299,7 @@ export default async function CatProfilePage({
           />
         </div>
       </article>
+      </AnimalPhotoLightboxRoot>
     </div>
   );
 }
