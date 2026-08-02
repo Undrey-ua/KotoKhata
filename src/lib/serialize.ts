@@ -39,11 +39,8 @@ export function mediaDisplayUrl(mediaId: string) {
   return `/api/media/${mediaId}`;
 }
 
-/** Prefer Supabase public URL for public media; fall back to app proxy. */
+/** Prefer app media route — bucket may be private; publicUrl alone is not enough. */
 export function resolveMediaDisplayUrl(media: MediaUrlFields): string {
-  if (media.publicUrl && media.isPublic !== false) {
-    return media.publicUrl;
-  }
   return mediaDisplayUrl(media.id);
 }
 

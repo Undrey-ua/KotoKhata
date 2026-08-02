@@ -4,6 +4,9 @@ import { ANIMAL_MEDIA_BUCKET } from "@/lib/constants";
 import { prisma } from "@/lib/db/prisma";
 import { createAdminClient } from "@/lib/storage/supabase-admin";
 
+const PUBLIC_SIGNED_URL_TTL_SEC = 60 * 60 * 24;
+const PRIVATE_SIGNED_URL_TTL_SEC = 60 * 60;
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -45,19 +48,21 @@ export async function GET(
   }
 
   const supabase = createAdminClient();
+  const expiresIn = isPubliclyVisible
+    ? PUBLIC_SIGNED_URL_TTL_SEC
+    : PRIVATE_SIGNED_URL_TTL_SEC;
+
   const { data, error } = await supabase.storage
     .from(ANIMAL_MEDIA_BUCKET)
-    .download(media.storagePath);
+    .createSignedUrl(media.storagePath, expiresIn);
 
-  if (error || !data) {
+  if (error || !data?.signedUrl) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const buffer = Buffer.from(await data.arrayBuffer());
-
-  return new NextResponse(buffer, {
+  return NextResponse.redirect(data.signedUrl, {
+    status: 307,
     headers: {
-      "Content-Type": media.mimeType ?? "image/jpeg",
       "Cache-Control": isPubliclyVisible
         ? "public, max-age=86400, stale-while-revalidate=604800"
         : "private, max-age=3600",
