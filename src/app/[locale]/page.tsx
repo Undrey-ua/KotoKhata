@@ -89,7 +89,7 @@ export default async function HomePage({
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative mx-auto w-full max-w-[280px] sm:max-w-xs lg:mx-0 lg:ml-auto lg:max-w-[320px]">
             <div className="overflow-hidden rounded-2xl border border-border-cool bg-card shadow-lg">
               {featured?.imageUrl ? (
                 <Link href={`/s/${SHELTER_SLUG}/cats/${featured.slug}`}>
