@@ -1,0 +1,581 @@
+// KotoXata — Prisma Schema
+// Multi-tenant animal shelter platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // Supabase connection pooling
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ShelterMemberRole {
+  ADMIN
+  VOLUNTEER
+  VETERINARIAN // future
+}
+
+enum AnimalSpecies {
+  CAT
+  DOG // future expansion
+}
+
+enum AnimalSex {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum AnimalStatus {
+  SEEKING_SPONSOR      // ❤️ Шукає фінансового опікуна
+  PARTIALLY_FUNDED     // 💚 Частково забезпечений
+  FULLY_SPONSORED      // 🤝 Має фінансових опікунів
+  SEEKING_HOME         // 🏡 Шукає дім
+  ADOPTED              // 🎉 Прилаштований
+  PERMANENT_RESIDENT   // 🏥 Постійний мешканець
+}
+
+enum AnimalPersonality {
+  PLAYFUL       // грайливий
+  CALM          // спокійний
+  SHY           // сором'язливий
+  SERIOUS       // серйозний
+  KITTEN        // маленьке кошеня
+}
+
+enum AnimalMood {
+  GREAT
+  GOOD
+  OK
+  NEEDS_ATTENTION
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+enum MedicalRecordType {
+  CHECKUP
+  VACCINATION
+  SURGERY
+  TREATMENT
+  NOTE
+}
+
+enum SponsorshipStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+/** Admin-controlled relationship status (independent of payment timeliness). */
+enum CuratorRelationshipStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum AdoptionApplicationStatus {
+  PENDING
+  REVIEWING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum DonationType {
+  ONE_TIME
+  MONTHLY
+}
+
+enum AiDraftStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  REGENERATED
+}
+
+enum NotificationChannel {
+  TELEGRAM
+  EMAIL
+  IN_APP
+}
+
+enum NotificationType {
+  LIFE_STORY
+  PHOTO
+  VIDEO
+  HEALTH_UPDATE
+  SPONSORSHIP
+  ADOPTION
+  SYSTEM
+}
+
+enum TelegramBotType {
+  SPONSOR
+  VOLUNTEER
+}
+
+enum TelegramSessionState {
+  IDLE
+  NEW_ANIMAL_PHOTO
+  NEW_ANIMAL_NAME
+  NEWS_SELECT_ANIMAL
+  NEWS_UPLOAD_MEDIA
+  NEWS_CHOOSE_TEXT_MODE
+  NEWS_WRITE_TEXT
+  NEWS_AI_REVIEW
+  NEWS_EDIT_TEXT
+  LINK_ACCOUNT
+}
+
+// ─── Core Tenant ─────────────────────────────────────────────────────────────
+
+model Shelter {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  logoUrl     String?  @map("logo_url")
+  website     String?
+  address     String?
+  phone       String?
+  email       String?
+
+  // Manual payment details (MVP)
+  bankIban      String? @map("bank_iban")
+  bankRecipient String? @map("bank_recipient")
+  bankName      String? @map("bank_name")
+
+  // Telegram bot tokens (per-shelter in SaaS; platform-level in MVP)
+  telegramSponsorBotToken   String? @map("telegram_sponsor_bot_token")
+  telegramVolunteerBotToken String? @map("telegram_volunteer_bot_token")
+
+  // Branding & settings (JSON for flexibility)
+  settings Json @default("{}")
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members      ShelterMember[]
+  animals      Animal[]
+  donations    Donation[]
+  applications AdoptionApplication[]
+  curatorNotes CuratorNote[]
+  volunteerInvites VolunteerInvite[]
+
+  @@map("shelters")
+}
+
+// ─── Users & Access ────────────────────────────────────────────────────────────
+
+model User {
+  id        String  @id @default(uuid())
+  // Synced from Supabase Auth — same UUID
+  email     String  @unique
+  fullName  String? @map("full_name")
+  phone     String?
+  avatarUrl String? @map("avatar_url")
+  locale    String  @default("uk") // uk | en
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shelterMemberships ShelterMember[]
+  sponsorships       Sponsorship[]
+  applications       AdoptionApplication[]
+  donations          Donation[]
+  telegramAccounts   TelegramAccount[]
+  lifeStories        LifeStory[]           @relation("LifeStoryAuthor")
+  medicalRecords     MedicalRecord[]       @relation("MedicalRecordAuthor")
+  statusChanges      AnimalStatusHistory[] @relation("StatusChangedBy")
+  notifications      Notification[]
+  curatorNotesAbout  CuratorNote[]         @relation("CuratorNotesAbout")
+  curatorNotesAuthored CuratorNote[]       @relation("CuratorNotesBy")
+  volunteerInvitesSent VolunteerInvite[]   @relation("VolunteerInvitedBy")
+
+  @@map("users")
+}
+
+model ShelterMember {
+  id        String            @id @default(uuid())
+  shelterId String            @map("shelter_id")
+  userId    String            @map("user_id")
+  role      ShelterMemberRole @default(VOLUNTEER)
+
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  shelter Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shelterId, userId])
+  @@index([userId])
+  @@map("shelter_members")
+}
+
+model VolunteerInvite {
+  id          String            @id @default(uuid())
+  shelterId   String            @map("shelter_id")
+  email       String
+  role        ShelterMemberRole @default(VOLUNTEER)
+  invitedById String?           @map("invited_by_id")
+  acceptedAt  DateTime?         @map("accepted_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  shelter   Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  invitedBy User?   @relation("VolunteerInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([shelterId, email])
+  @@index([email])
+  @@map("volunteer_invites")
+}
+
+// ─── Animals ─────────────────────────────────────────────────────────────────
+
+model Animal {
+  id        String @id @default(uuid())
+  shelterId String @map("shelter_id")
+  slug      String
+
+  name        String
+  species     AnimalSpecies   @default(CAT)
+  sex         AnimalSex       @default(UNKNOWN)
+  birthDate   DateTime?       @map("birth_date")
+  status      AnimalStatus    @default(SEEKING_HOME)
+  personality AnimalPersonality @default(CALM)
+  mood        AnimalMood      @default(GOOD)
+
+  description     String?
+  characterTraits String? @map("character_traits")
+  specialFeatures String? @map("special_features")
+  healthNotes     String? @map("health_notes")
+
+  vaccinated  Boolean @default(false)
+  sterilized  Boolean @default(false)
+  location    String?
+
+  // Funding
+  monthlyGoal           Decimal? @map("monthly_goal") @db.Decimal(10, 2)
+  minCuratorshipAmount  Decimal? @map("min_curatorship_amount") @db.Decimal(10, 2)
+  currentFunding        Decimal  @default(0) @map("current_funding") @db.Decimal(10, 2)
+
+  isPublic   Boolean @default(true) @map("is_public")
+  isFeatured Boolean @default(false) @map("is_featured")
+
+  adoptedAt      DateTime? @map("adopted_at")
+  lastActivityAt DateTime? @map("last_activity_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shelter      Shelter               @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  lifeStories  LifeStory[]
+  media        Media[]
+  medicalRecords MedicalRecord[]
+  sponsorships Sponsorship[]
+  applications AdoptionApplication[]
+  statusHistory AnimalStatusHistory[]
+  notifications Notification[]
+
+  @@unique([shelterId, slug])
+  @@index([shelterId, status])
+  @@index([shelterId, isPublic])
+  @@index([shelterId, isFeatured])
+  @@map("animals")
+}
+
+model AnimalStatusHistory {
+  id         String       @id @default(uuid())
+  animalId   String       @map("animal_id")
+  fromStatus AnimalStatus @map("from_status")
+  toStatus   AnimalStatus @map("to_status")
+  changedById String?     @map("changed_by_id")
+  note       String?
+  changedAt  DateTime     @default(now()) @map("changed_at")
+
+  animal    Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  changedBy User?  @relation("StatusChangedBy", fields: [changedById], references: [id])
+
+  @@index([animalId, changedAt])
+  @@map("animal_status_history")
+}
+
+// ─── Life Stories & Media ──────────────────────────────────────────────────────
+
+model LifeStory {
+  id       String @id @default(uuid())
+  animalId String @map("animal_id")
+  authorId String @map("author_id")
+
+  content   String
+  mood      AnimalMood?
+  isPublic  Boolean  @default(false) @map("is_public")
+  publishedAt DateTime? @map("published_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  animal  Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  author  User      @relation("LifeStoryAuthor", fields: [authorId], references: [id])
+  media   Media[]
+  aiDraft AiDraft?
+
+  @@index([animalId, publishedAt(sort: Desc)])
+  @@map("life_stories")
+}
+
+model Media {
+  id          String    @id @default(uuid())
+  animalId    String    @map("animal_id")
+  lifeStoryId String?   @map("life_story_id")
+
+  type        MediaType
+  storagePath String    @map("storage_path")
+  publicUrl   String?   @map("public_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  mimeType    String?   @map("mime_type")
+  fileSize    Int?      @map("file_size")
+  width       Int?
+  height      Int?
+  duration    Int?      // seconds, for video
+
+  isPublic  Boolean  @default(false) @map("is_public")
+  isCover   Boolean  @default(false) @map("is_cover")
+  sortOrder Int      @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  animal    Animal     @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  lifeStory LifeStory? @relation(fields: [lifeStoryId], references: [id], onDelete: SetNull)
+
+  @@index([animalId, type])
+  @@map("media")
+}
+
+model AiDraft {
+  id          String        @id @default(uuid())
+  lifeStoryId String        @unique @map("life_story_id")
+
+  generatedText String  @map("generated_text")
+  status        AiDraftStatus @default(PENDING_REVIEW)
+  variantNumber Int     @default(1) @map("variant_number")
+  photoAnalysis String? @map("photo_analysis") // AI vision description
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lifeStory LifeStory @relation(fields: [lifeStoryId], references: [id], onDelete: Cascade)
+
+  @@map("ai_drafts")
+}
+
+// ─── Medical ───────────────────────────────────────────────────────────────────
+
+model MedicalRecord {
+  id       String @id @default(uuid())
+  animalId String @map("animal_id")
+  authorId String @map("author_id")
+
+  type        MedicalRecordType
+  title       String?
+  description String
+  recordDate  DateTime @map("record_date")
+  isPublic    Boolean  @default(false) @map("is_public")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  author User   @relation("MedicalRecordAuthor", fields: [authorId], references: [id])
+
+  @@index([animalId, recordDate(sort: Desc)])
+  @@map("medical_records")
+}
+
+// ─── Sponsorship & Payments ────────────────────────────────────────────────────
+
+model Sponsorship {
+  id        String @id @default(uuid())
+  animalId  String @map("animal_id")
+  sponsorId String @map("sponsor_id")
+
+  status        SponsorshipStatus         @default(ACTIVE)
+  curatorStatus CuratorRelationshipStatus @default(ACTIVE) @map("curator_status")
+  /** Expected days between contributions (default 30). Used for payment timeliness. */
+  contributionIntervalDays Int            @default(30) @map("contribution_interval_days")
+  monthlyAmount Decimal                   @map("monthly_amount") @db.Decimal(10, 2)
+  message       String?
+
+  startedAt DateTime  @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+
+  animal   Animal                @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  sponsor  User                  @relation(fields: [sponsorId], references: [id])
+  payments SponsorshipPayment[]
+
+  @@unique([animalId, sponsorId])
+  @@index([sponsorId, status])
+  @@map("sponsorships")
+}
+
+model SponsorshipPayment {
+  id            String @id @default(uuid())
+  sponsorshipId String @map("sponsorship_id")
+
+  amount     Decimal       @db.Decimal(10, 2)
+  status     PaymentStatus @default(PENDING)
+  externalId String?       @map("external_id") // Stripe/LiqPay reference
+
+  paidAt    DateTime? @map("paid_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  sponsorship Sponsorship @relation(fields: [sponsorshipId], references: [id], onDelete: Cascade)
+
+  @@index([sponsorshipId])
+  @@map("sponsorship_payments")
+}
+
+model CuratorNote {
+  id        String @id @default(uuid())
+  shelterId String @map("shelter_id")
+  sponsorId String @map("sponsor_id")
+  authorId  String @map("author_id")
+
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shelter Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  sponsor User    @relation("CuratorNotesAbout", fields: [sponsorId], references: [id], onDelete: Cascade)
+  author  User    @relation("CuratorNotesBy", fields: [authorId], references: [id])
+
+  @@index([shelterId, sponsorId, createdAt(sort: Desc)])
+  @@map("curator_notes")
+}
+
+// ─── Adoption & Donations ──────────────────────────────────────────────────────
+
+model AdoptionApplication {
+  id          String @id @default(uuid())
+  shelterId   String @map("shelter_id")
+  animalId    String @map("animal_id")
+  applicantId String @map("applicant_id")
+
+  status   AdoptionApplicationStatus @default(PENDING)
+  formData Json                      @map("form_data") // flexible application fields
+
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shelter   Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  animal    Animal  @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  applicant User    @relation(fields: [applicantId], references: [id])
+
+  @@index([shelterId, status])
+  @@index([animalId])
+  @@map("adoption_applications")
+}
+
+model Donation {
+  id        String  @id @default(uuid())
+  shelterId String  @map("shelter_id")
+  donorId   String? @map("donor_id")
+  animalId  String? @map("animal_id") // optional: donate to specific animal
+
+  amount  Decimal      @db.Decimal(10, 2)
+  type    DonationType @default(ONE_TIME)
+  message String?
+  status  PaymentStatus @default(PENDING)
+
+  externalId String? @map("external_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  shelter Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  donor   User?   @relation(fields: [donorId], references: [id])
+
+  @@index([shelterId, createdAt(sort: Desc)])
+  @@map("donations")
+}
+
+// ─── Telegram ──────────────────────────────────────────────────────────────────
+
+model TelegramAccount {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+
+  chatId   BigInt          @map("chat_id")
+  username String?
+  botType  TelegramBotType @map("bot_type")
+
+  linkedAt DateTime @default(now()) @map("linked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, botType])
+  @@index([userId])
+  @@map("telegram_accounts")
+}
+
+model TelegramSession {
+  id     String @id @default(uuid())
+  chatId BigInt @map("chat_id")
+  botType TelegramBotType @map("bot_type")
+
+  state      TelegramSessionState @default(IDLE)
+  contextData Json                @default("{}") @map("context_data")
+  shelterId  String?              @map("shelter_id")
+
+  expiresAt DateTime @map("expires_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([chatId, botType])
+  @@map("telegram_sessions")
+}
+
+model TelegramLinkCode {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  code   String @unique
+
+  botType   TelegramBotType @map("bot_type")
+  expiresAt DateTime        @map("expires_at")
+  usedAt    DateTime?       @map("used_at")
+
+  @@index([code])
+  @@map("telegram_link_codes")
+}
+
+// ─── Notifications ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id       String  @id @default(uuid())
+  userId   String  @map("user_id")
+  animalId String? @map("animal_id")
+
+  channel NotificationChannel
+  type    NotificationType
+  payload Json
+  sent    Boolean @default(false)
+  sentAt  DateTime? @map("sent_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  animal Animal? @relation(fields: [animalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, sent, createdAt])
+  @@map("notifications")
+}

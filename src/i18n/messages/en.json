@@ -1,0 +1,248 @@
+{
+  "common": {
+    "brand": "KotoXata",
+    "tagline": "A home for every cat",
+    "language": "Language",
+    "login": "Sign in",
+    "crm": "Admin",
+    "viewCats": "Meet the cats"
+  },
+  "nav": {
+    "home": "Home",
+    "animals": "Cats",
+    "cats": "Cats",
+    "help": "How to help",
+    "about": "About",
+    "telegram": "Telegram",
+    "support": "Support",
+    "curatorLogin": "Curator login",
+    "myWard": "My ward",
+    "crm": "CRM"
+  },
+  "stats": {
+    "inCare": "in care",
+    "adopted": "rehomed",
+    "guardians": "guardians",
+    "news": "updates"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "curatorSignIn": "Curator login",
+    "curatorSignInHint": "For financial guardians — view your ward's life story and manage sponsorship.",
+    "staffSignIn": "Team login",
+    "staffSignInHint": "For shelter volunteers and admins. Access is granted manually.",
+    "staffPrompt": "Shelter volunteer?",
+    "backToSite": "Back to site",
+    "signInHint": "For financial curators (sponsors).",
+    "signingIn": "Signing in…",
+    "register": "Register",
+    "registering": "Registering…",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full name",
+    "noAccount": "No account?",
+    "hasAccount": "Already have an account?",
+    "errors": {
+      "no_access": "No shelter access. Try signing in again — access is granted automatically.",
+      "auth_callback": "Email confirmation failed. Please sign in with email and password."
+    }
+  },
+  "landing": {
+    "heroTitle": "Every cat deserves love",
+    "heroSubtitle": "Meet the residents of KotoXata shelter, become a sponsor, or give a forever home.",
+    "ctaShelter": "Visit KotoXata shelter",
+    "ctaSponsor": "Become a sponsor",
+    "ctaFindFriend": "Find a friend",
+    "howToHelp": "How to help",
+    "featuredCat": "Meet them →",
+    "featuredPlaceholder": "A featured cat will appear here soon",
+    "features": {
+      "connect": {
+        "title": "Emotional connection",
+        "description": "Follow your sponsored cat's life via Telegram — your ward is always with you."
+      },
+      "curator": {
+        "title": "Easy to become a curator",
+        "description": "Pick a cat from the catalog, choose a comfortable monthly amount — and receive updates on how your support helps them directly."
+      },
+      "support": {
+        "title": "Support that saves lives",
+        "description": "Financial help follows love. Connection first, support second."
+      }
+    },
+    "stats": {
+      "shelter": "Shelter",
+      "mission": "Mission",
+      "missionText": "Help every cat find a home and people who will love them"
+    },
+    "curatorship": {
+      "title": "What is financial curatorship?",
+      "intro": "Financial curatorship means regular support for a specific cat. You don't just send money \"somewhere\" — you become a guardian of a living soul with a name, personality, and story.",
+      "steps": {
+        "choose": {
+          "title": "Choose a cat",
+          "description": "Browse the catalog, read their story, and find the one that speaks to you."
+        },
+        "support": {
+          "title": "Support monthly",
+          "description": "A fixed contribution covers food, medicine, and care for your sponsored cat."
+        },
+        "connect": {
+          "title": "Stay connected",
+          "description": "Receive news, photos, and updates about your cat — on the website and via Telegram."
+        }
+      },
+      "note": "Connection first. Then financial support that saves lives.",
+      "cta": "Choose a cat to sponsor"
+    },
+    "funds": {
+      "title": "Where do shelter funds go?",
+      "intro": "Every hryvnia goes to real animal needs. We publish reports and show exactly how donations are used.",
+      "items": {
+        "food": {
+          "title": "Food & nutrition",
+          "description": "Quality food, treats, and special diets for cats with specific needs."
+        },
+        "vet": {
+          "title": "Veterinary care",
+          "description": "Vaccinations, sterilization, treatment, tests, and emergency surgery."
+        },
+        "care": {
+          "title": "Daily care",
+          "description": "Litter, hygiene supplies, toys, carriers, and shelter equipment."
+        },
+        "shelter": {
+          "title": "Shelter operations",
+          "description": "Rent, utilities, and day-to-day running of the shelter."
+        }
+      },
+      "transparency": "Payments are manually confirmed by an admin during MVP. Public financial reports coming soon."
+    }
+  },
+  "shelter": {
+    "home": "Home",
+    "cats": "Cats",
+    "about": "About",
+    "donate": "Donate"
+  },
+  "catalog": {
+    "title": "Cats",
+    "subtitle": "Meet our shelter residents and find a friend to support.",
+    "fundedShort": "{percent}% funded",
+    "adopted": "Adopted",
+    "filtersTitle": "Filters",
+    "sex": "Sex",
+    "support": "Support",
+    "all": "All",
+    "filterBoys": "Boys",
+    "filterGirls": "Girls",
+    "filterNeedsCurator": "Need a curator",
+    "filterHasCurators": "Under curator care",
+    "filterAdopted": "Adopted",
+    "search": "Search",
+    "searchPlaceholder": "Name or description…",
+    "age": "Age",
+    "filterAge_under_1": "Under 1 year",
+    "filterAge_1_5": "1–5 years",
+    "filterAge_5_10": "5–10 years",
+    "filterAge_10_plus": "10+",
+    "clear": "Clear filters",
+    "found": "Found: {count}",
+    "empty": "No cats in the catalog yet.",
+    "noResults": "No cats match the selected filters."
+  },
+  "animalProfile": {
+    "backToCatalog": "All cats",
+    "age": "Age",
+    "sex": "Sex",
+    "personality": "Personality",
+    "status": "Status",
+    "about": "About {name}",
+    "traits": "Traits",
+    "health": "Health",
+    "vaccinated": "Vaccinated",
+    "sterilized": "Sterilized",
+    "gallery": "Gallery",
+    "timeline": "Timeline",
+    "support": "Support",
+    "becomeCurator": "Become a curator",
+    "share": "Share"
+  },
+  "payments": {
+    "underCuratorship": "Under curator care",
+    "fundedPercent": "{name} is {percent}% funded",
+    "requisitesTitle": "Payment details",
+    "requisitesHint": "Transfer the amount below. An admin will confirm your payment within 1–2 days.",
+    "amount": "Amount",
+    "monthlyAmount": "Monthly support",
+    "iban": "IBAN",
+    "recipient": "Recipient",
+    "bank": "Bank",
+    "purpose": "Payment reference",
+    "manualConfirm": "Keep your receipt after transfer. We'll email you once confirmed.",
+    "close": "Close",
+    "donateIntro": "One-time help for this cat. You'll see bank details after submitting.",
+    "sponsorIntro": "Become a financial curator for {name}. You'll receive monthly updates about your ward.",
+    "minMonthly": "Minimum: {amount}",
+    "recommendedMonthly": "Recommended: {amount}",
+    "fullName": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "message": "Message (optional)",
+    "showRequisites": "Get payment details",
+    "becomeCuratorSubmit": "Start curatorship",
+    "submitting": "Processing…",
+    "loggedInAs": "Signed in as {email}",
+    "hasAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "emailConfirmHint": "Check your email to confirm your account. After that you can sign in to your curator dashboard."
+  },
+  "curator": {
+    "dashboardTitle": "Curator dashboard",
+    "emptyTitle": "No wards yet",
+    "emptyDesc": "Choose a cat from the catalog and become their curator — their life story will appear here.",
+    "browseCats": "Browse cats",
+    "openLifePage": "Life story",
+    "backToDashboard": "All wards",
+    "yourWard": "Your ward",
+    "publicProfile": "Public profile",
+    "lifeHistory": "Life history",
+    "lifeHistoryHint": "Updates from volunteers — the same content you get in the Telegram bot.",
+    "noStories": "No entries yet. Volunteers will add the first updates soon.",
+    "fromVolunteer": "Volunteer: {name}",
+    "logout": "Sign out"
+  },
+  "telegram": {
+    "title": "Telegram bot for volunteers",
+    "subtitle": "Add cats and updates in 30 seconds — straight from your phone",
+    "previewNote": "Interface preview — bot in development",
+    "volunteerTitle": "For shelter volunteers",
+    "volunteerDesc": "The bot helps quickly update animal profiles, publish news, and respond to guardians.",
+    "feature1": "New animal in a few steps",
+    "feature2": "Photos and news go live instantly",
+    "feature3": "Tasks and messages in one place",
+    "seconds": "sec",
+    "speedDesc": "Time needed to add a cat via the bot",
+    "cta": "Browse cats",
+    "menu": {
+      "newAnimal": "New animal",
+      "newNews": "New update",
+      "photo": "Photo/video",
+      "findAnimal": "Find animal",
+      "tasks": "My tasks",
+      "messages": "Messages",
+      "stats": "Statistics",
+      "settings": "Settings"
+    },
+    "chat": {
+      "photo": "Send a cat photo 📷",
+      "photoReply": "[photo]",
+      "name": "What's the cat's name?",
+      "done": "✅ Profile created!"
+    }
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "madeWith": "Made with ❤️ for animals"
+  }
+}

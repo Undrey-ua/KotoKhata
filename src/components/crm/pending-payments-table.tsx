@@ -1,0 +1,142 @@
+"use client";
+
+import { Link } from "@/i18n/navigation";
+import { formatUah } from "@/lib/animal-funding";
+import { formatPaymentDate } from "@/lib/crm/curator-labels";
+import type { PendingPaymentItem } from "@/lib/crm/pending-payments";
+import {
+  confirmPendingDonationAction,
+  confirmPendingSponsorshipAction,
+  confirmPendingSponsorshipPaymentAction,
+  rejectPendingDonationAction,
+  rejectPendingSponsorshipAction,
+} from "@/actions/payment-confirm";
+import { ConfirmPaymentButton } from "@/components/crm/confirm-payment-button";
+
+type PendingPaymentsTableProps = {
+  items: PendingPaymentItem[];
+  shelterSlug: string;
+  locale?: string;
+};
+
+function kindLabel(kind: PendingPaymentItem["kind"]) {
+  switch (kind) {
+    case "curatorship":
+      return "Кураторство";
+    case "donation":
+      return "Разова допомога";
+    case "sponsorship_payment":
+      return "Щомісячний платіж";
+  }
+}
+
+export function PendingPaymentsTable({
+  items,
+  shelterSlug,
+  locale = "uk",
+}: PendingPaymentsTableProps) {
+  if (items.length === 0) {
+    return (
+      <p className="mt-6 rounded-xl border border-dashed border-border-cool bg-card p-12 text-center text-muted-foreground">
+        Немає платежів, що очікують підтвердження.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-6 overflow-hidden rounded-xl border border-border-cool bg-card shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-border-cool bg-surface-cool/60 text-xs uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-3 font-medium">Дата</th>
+              <th className="px-4 py-3 font-medium">Тип</th>
+              <th className="px-4 py-3 font-medium">Від кого</th>
+              <th className="px-4 py-3 font-medium">Котик</th>
+              <th className="px-4 py-3 font-medium">Сума</th>
+              <th className="px-4 py-3 font-medium">Дії</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-cool">
+            {items.map((item) => {
+              const person =
+                item.kind === "donation"
+                  ? item.donorName ?? item.donorEmail ?? "Анонім"
+                  : item.curatorName;
+
+              const personLink =
+                item.kind !== "donation"
+                  ? `/crm/${shelterSlug}/curators/${item.curatorId}`
+                  : null;
+
+              const animalName =
+                item.kind === "donation" ? item.animalName : item.animalName;
+              const animalSlug =
+                item.kind === "donation" ? item.animalSlug : item.animalSlug;
+
+              const confirmAction =
+                item.kind === "curatorship"
+                  ? () => confirmPendingSponsorshipAction(shelterSlug, item.id)
+                  : item.kind === "donation"
+                    ? () => confirmPendingDonationAction(shelterSlug, item.id)
+                    : () => confirmPendingSponsorshipPaymentAction(shelterSlug, item.id);
+
+              const rejectAction =
+                item.kind === "curatorship"
+                  ? () => rejectPendingSponsorshipAction(shelterSlug, item.id)
+                  : item.kind === "donation"
+                    ? () => rejectPendingDonationAction(shelterSlug, item.id)
+                    : undefined;
+
+              return (
+                <tr key={`${item.kind}-${item.id}`} className="hover:bg-surface-cool/40">
+                  <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                    {formatPaymentDate(item.createdAt, locale)}
+                  </td>
+                  <td className="px-4 py-3">{kindLabel(item.kind)}</td>
+                  <td className="px-4 py-3">
+                    {personLink ? (
+                      <Link href={personLink} className="font-medium text-primary hover:underline">
+                        {person}
+                      </Link>
+                    ) : (
+                      <span>{person}</span>
+                    )}
+                    {item.kind === "curatorship" && (
+                      <p className="text-xs text-muted-foreground">{item.curatorEmail}</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {animalName && animalSlug ? (
+                      <Link
+                        href={`/s/${shelterSlug}/cats/${animalSlug}`}
+                        className="text-foreground hover:text-primary"
+                      >
+                        {animalName}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">Загальний донат</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-medium">{formatUah(item.amount)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <ConfirmPaymentButton action={confirmAction} />
+                      {rejectAction && (
+                        <ConfirmPaymentButton
+                          action={rejectAction}
+                          label="Відхилити"
+                          variant="outline"
+                        />
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
