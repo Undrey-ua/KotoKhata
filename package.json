@@ -2,9 +2,6 @@
   "name": "kotoxata",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
