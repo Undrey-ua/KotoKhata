@@ -223,16 +223,16 @@ export default async function CatProfilePage({
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 {tp("gallery")}
               </h2>
-              <ul className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              <ul className="mt-3 flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory">
                 {gallery.map((photo) => (
                   <li
                     key={photo.id}
-                    className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border-cool"
+                    className="aspect-[3/4] w-24 shrink-0 snap-start overflow-hidden rounded-lg border border-border-cool bg-surface-stone sm:w-28"
                   >
                     <SafeImage
                       src={photo.url}
                       alt=""
-                      className="h-full w-full bg-surface-stone object-contain"
+                      className="h-full w-full object-cover"
                     />
                   </li>
                 ))}
