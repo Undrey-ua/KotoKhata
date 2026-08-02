@@ -8,8 +8,11 @@
  */
 
 import { TelegramBotType } from "@prisma/client";
+import { loadEnvFile } from "./load-env";
 import { prisma } from "@/lib/db/prisma";
 import { createTelegramLinkCode } from "@/lib/telegram/link";
+
+loadEnvFile();
 
 async function main() {
   const email = process.argv[2] ?? process.env.ADMIN_EMAILS?.split(",")[0]?.trim();

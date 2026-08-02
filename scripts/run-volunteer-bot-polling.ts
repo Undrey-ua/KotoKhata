@@ -5,7 +5,10 @@
  * Usage: npm run telegram:poll
  */
 
+import { loadEnvFile } from "./load-env";
 import { createVolunteerBot } from "@/lib/telegram/volunteer/bot";
+
+loadEnvFile();
 
 async function main() {
   const bot = createVolunteerBot();

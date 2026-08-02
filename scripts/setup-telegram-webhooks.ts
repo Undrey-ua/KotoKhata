@@ -8,6 +8,9 @@
  */
 
 import { randomBytes } from "crypto";
+import { loadEnvFile } from "./load-env";
+
+loadEnvFile();
 
 const args = process.argv.slice(2);
 const volunteerOnly = args.includes("--volunteer-only");
