@@ -13,6 +13,7 @@ export async function getActiveSponsorships(userId: string) {
           media: {
             where: { type: "PHOTO", isCover: true },
             take: 1,
+            select: { id: true, publicUrl: true, isPublic: true, isCover: true },
           },
         },
       },
@@ -21,11 +22,17 @@ export async function getActiveSponsorships(userId: string) {
   });
 }
 
-export async function getCuratorHomeHref(userId: string) {
-  const sponsorships = await getActiveSponsorships(userId);
-  if (sponsorships.length === 0) return "/my";
+export function resolveCuratorHomeHref(
+  sponsorships: { animal: { slug: string } }[],
+): string | null {
+  if (sponsorships.length === 0) return null;
   if (sponsorships.length === 1) return `/my/${sponsorships[0].animal.slug}`;
   return "/my";
+}
+
+export async function getCuratorHomeHref(userId: string) {
+  const sponsorships = await getActiveSponsorships(userId);
+  return resolveCuratorHomeHref(sponsorships);
 }
 
 export async function requireCuratorSession() {

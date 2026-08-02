@@ -1,6 +1,7 @@
 import { SponsorshipStatus, type AnimalStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { computeFundingInfo, type AnimalFundingInfo } from "@/lib/animal-funding";
+import { resolveMediaDisplayUrl } from "@/lib/serialize";
 
 export type CrmAnimalCurator = {
   id: string;
@@ -69,7 +70,7 @@ export async function getCrmAnimalsList(shelterId: string): Promise<CrmAnimalRow
       status: animal.status,
       isPublic: animal.isPublic,
       isFeatured: animal.isFeatured,
-      coverUrl: cover ? `/api/media/${cover.id}` : null,
+      coverUrl: cover ? resolveMediaDisplayUrl(cover) : null,
       funding: computeFundingInfo(
         animal.monthlyGoal,
         animal.minCuratorshipAmount,

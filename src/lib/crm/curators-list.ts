@@ -10,6 +10,7 @@ import {
   type CuratorshipPaymentState,
 } from "@/lib/crm/curator-payment-status";
 import { getCuratorNoteCountsBySponsor } from "@/lib/crm/curator-notes";
+import { resolveMediaDisplayUrl } from "@/lib/serialize";
 
 /** One row per curator–animal relationship (sponsorship). */
 export type CrmCuratorshipRow = {
@@ -96,7 +97,7 @@ export async function getCrmCuratorshipsList(
             where: { type: "PHOTO" },
             orderBy: [{ isCover: "desc" }, { createdAt: "desc" }],
             take: 1,
-            select: { id: true },
+            select: { id: true, publicUrl: true, isPublic: true },
           },
         },
       },
@@ -131,7 +132,7 @@ export async function getCrmCuratorshipsList(
       animalId: s.animal.id,
       animalName: s.animal.name,
       animalSlug: s.animal.slug,
-      animalCoverUrl: cover ? `/api/media/${cover.id}` : null,
+      animalCoverUrl: cover ? resolveMediaDisplayUrl(cover) : null,
       monthlyAmount: Number(s.monthlyAmount),
       curatorStatus: s.curatorStatus,
       workflowStatus: s.status,

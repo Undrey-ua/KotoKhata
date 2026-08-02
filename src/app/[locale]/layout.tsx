@@ -3,8 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { getAppSession } from "@/lib/auth/session";
-import { getCuratorHomeHref, getActiveSponsorships } from "@/lib/auth/curator";
-import { getUserLoginCapabilities } from "@/lib/auth/redirect-after-login";
+import { getActiveSponsorships, resolveCuratorHomeHref } from "@/lib/auth/curator";
 import { SetHtmlLang } from "@/components/set-html-lang";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -51,18 +50,12 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
   const session = await getAppSession();
-  const capabilities = session
-    ? await getUserLoginCapabilities(session.appUser.id)
-    : null;
   const sponsorships = session
     ? await getActiveSponsorships(session.appUser.id)
     : [];
-  const curatorHref =
-    sponsorships.length > 0
-      ? await getCuratorHomeHref(session!.appUser.id)
-      : null;
+  const curatorHref = resolveCuratorHomeHref(sponsorships);
   const staffCrmHref =
-    session && capabilities?.isStaff
+    session && session.appUser.shelterMemberships.length > 0
       ? `/crm/${session.appUser.shelterMemberships[0]?.shelter.slug ?? "kotoxata"}/animals`
       : null;
 

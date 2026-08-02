@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { MediaType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { ANIMAL_MEDIA_BUCKET } from "@/lib/constants";
-import { mediaDisplayUrl } from "@/lib/serialize";
+import { resolveMediaDisplayUrl } from "@/lib/serialize";
 import { createAdminClient } from "@/lib/storage/supabase-admin";
 
 function extensionFromMime(mime: string) {
@@ -185,16 +185,16 @@ export async function deleteAllAnimalMedia(animalId: string) {
 export async function getAnimalCoverUrl(animalId: string) {
   const cover = await prisma.media.findFirst({
     where: { animalId, type: MediaType.PHOTO, isCover: true },
-    select: { id: true },
+    select: { id: true, publicUrl: true, isPublic: true },
   });
 
-  if (cover) return mediaDisplayUrl(cover.id);
+  if (cover) return resolveMediaDisplayUrl(cover);
 
   const first = await prisma.media.findFirst({
     where: { animalId, type: MediaType.PHOTO, isPublic: true },
     orderBy: { createdAt: "desc" },
-    select: { id: true },
+    select: { id: true, publicUrl: true, isPublic: true },
   });
 
-  return first ? mediaDisplayUrl(first.id) : null;
+  return first ? resolveMediaDisplayUrl(first) : null;
 }

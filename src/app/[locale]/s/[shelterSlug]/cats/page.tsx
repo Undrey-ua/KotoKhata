@@ -13,7 +13,7 @@ import { matchesCatalogAgeFilter } from "@/lib/animal-age";
 import { coverMediaUrl } from "@/lib/serialize";
 import { getAnimalsFunding } from "@/lib/animal-funding";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function CatsCatalogPage({
   params,
@@ -120,21 +120,32 @@ export default async function CatsCatalogPage({
           </p>
         ) : (
           <ul className="mt-4 grid grid-cols-2 gap-2 min-[480px]:grid-cols-3 lg:grid-cols-4 lg:gap-4 sm:mt-6">
-            {sortedAnimals.map((animal) => (
-              <li key={animal.id} className="h-full">
-                <CatalogCatCard
-                  name={animal.name}
-                  slug={animal.slug}
-                  sex={animal.sex}
-                  status={animal.status}
-                  description={animal.description}
-                  coverUrl={coverMediaUrl(animal.media)}
-                  shelterSlug={shelterSlug}
-                  funding={fundingByAnimal.get(animal.id)!}
-                  locale={locale}
-                />
-              </li>
-            ))}
+            {sortedAnimals.map((animal) => {
+              const funding = fundingByAnimal.get(animal.id)!;
+              const underCuratorship =
+                funding.hasCurators && funding.fundedPercent != null && !isAdopted(animal.status);
+
+              return (
+                <li key={animal.id} className="h-full">
+                  <CatalogCatCard
+                    name={animal.name}
+                    slug={animal.slug}
+                    sex={animal.sex}
+                    status={animal.status}
+                    description={animal.description}
+                    coverUrl={coverMediaUrl(animal.media)}
+                    shelterSlug={shelterSlug}
+                    funding={funding}
+                    adoptedLabel={tc("adopted")}
+                    fundedShortLabel={
+                      underCuratorship
+                        ? tc("fundedShort", { percent: funding.fundedPercent! })
+                        : undefined
+                    }
+                  />
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

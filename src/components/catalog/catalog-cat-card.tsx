@@ -1,4 +1,3 @@
-import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { AnimalSex, AnimalStatus } from "@prisma/client";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
@@ -21,10 +20,11 @@ type CatalogCatCardProps = {
   coverUrl: string | null;
   shelterSlug: string;
   funding: AnimalFundingInfo;
-  locale?: string;
+  adoptedLabel: string;
+  fundedShortLabel?: string;
 };
 
-export async function CatalogCatCard({
+export function CatalogCatCard({
   name,
   slug,
   sex,
@@ -33,9 +33,9 @@ export async function CatalogCatCard({
   coverUrl,
   shelterSlug,
   funding,
+  adoptedLabel,
+  fundedShortLabel,
 }: CatalogCatCardProps) {
-  const tc = await getTranslations("catalog");
-
   const underCuratorship = funding.hasCurators && funding.fundedPercent != null;
   const adopted = isAdopted(status);
 
@@ -59,7 +59,7 @@ export async function CatalogCatCard({
           )}
           {adopted && (
             <span className="absolute bottom-1.5 left-1.5 rounded-md bg-emerald-600/95 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white">
-              {tc("adopted")}
+              {adoptedLabel}
             </span>
           )}
           {underCuratorship && !adopted && (
@@ -88,9 +88,11 @@ export async function CatalogCatCard({
                   style={{ width: `${funding.fundedPercent}%` }}
                 />
               </div>
-              <p className="mt-1 truncate text-[10px] text-muted-foreground">
-                {tc("fundedShort", { percent: funding.fundedPercent! })}
-              </p>
+              {fundedShortLabel && (
+                <p className="mt-1 truncate text-[10px] text-muted-foreground">
+                  {fundedShortLabel}
+                </p>
+              )}
             </div>
           )}
 

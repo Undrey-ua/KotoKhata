@@ -4,7 +4,7 @@ import { requireCuratorAnimal } from "@/lib/auth/curator";
 import { getPublicHomeStatusShort } from "@/lib/animal-labels";
 import { SafeImage } from "@/components/shared/safe-image";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
-import { coverMediaUrl, mediaDisplayUrl } from "@/lib/serialize";
+import { coverMediaUrl, resolveMediaDisplayUrl } from "@/lib/serialize";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/actions/auth";
 
@@ -103,7 +103,7 @@ export default async function CuratorLifePage({
                         className="h-20 w-20 overflow-hidden rounded-lg border border-border-cool"
                       >
                         <SafeImage
-                          src={mediaDisplayUrl(item.id)}
+                          src={resolveMediaDisplayUrl(item)}
                           alt=""
                           className="h-full w-full bg-surface-stone object-contain"
                         />

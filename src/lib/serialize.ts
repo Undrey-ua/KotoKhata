@@ -29,8 +29,22 @@ export type MediaItem = {
   isCover: boolean;
 };
 
+export type MediaUrlFields = {
+  id: string;
+  publicUrl?: string | null;
+  isPublic?: boolean;
+};
+
 export function mediaDisplayUrl(mediaId: string) {
   return `/api/media/${mediaId}`;
+}
+
+/** Prefer Supabase public URL for public media; fall back to app proxy. */
+export function resolveMediaDisplayUrl(media: MediaUrlFields): string {
+  if (media.publicUrl && media.isPublic !== false) {
+    return media.publicUrl;
+  }
+  return mediaDisplayUrl(media.id);
 }
 
 export function toAnimalFormData(animal: Animal): AnimalFormData {
@@ -60,15 +74,15 @@ export function toAnimalFormData(animal: Animal): AnimalFormData {
 export function toMediaItems(media: Media[]): MediaItem[] {
   return media.map((m) => ({
     id: m.id,
-    url: mediaDisplayUrl(m.id),
+    url: resolveMediaDisplayUrl(m),
     isCover: m.isCover,
   }));
 }
 
 export function coverMediaUrl(
-  media: { id: string; isCover: boolean }[],
+  media: (MediaUrlFields & { isCover?: boolean })[],
 ): string | null {
   const cover = media.find((m) => m.isCover);
   const item = cover ?? media[0];
-  return item ? mediaDisplayUrl(item.id) : null;
+  return item ? resolveMediaDisplayUrl(item) : null;
 }

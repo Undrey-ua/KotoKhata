@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { SafeImage } from "@/components/shared/safe-image";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
-import { AnimalProfileActions } from "@/components/animal/animal-profile-actions";
+import { AnimalProfileActionsLoader } from "@/components/animal/animal-profile-actions-loader";
 import { FundingProgress } from "@/components/animal/funding-progress";
 import { formatAnimalAge } from "@/lib/animal-age";
 import {
@@ -14,11 +14,10 @@ import {
 } from "@/lib/animal-labels";
 import { prisma } from "@/lib/db/prisma";
 import { getAnimalFunding, decimalToNumber } from "@/lib/animal-funding";
-import { getAppSession } from "@/lib/auth/session";
 import { toMediaItems } from "@/lib/serialize";
 import { Check, MapPin } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const sexIcon: Record<string, string> = {
   MALE: "♂",
@@ -61,8 +60,6 @@ export default async function CatProfilePage({
   setRequestLocale(locale);
   const tp = await getTranslations("animalProfile");
   const tPay = await getTranslations("payments");
-
-  const session = await getAppSession();
 
   const shelter = await prisma.shelter.findUnique({
     where: { slug: shelterSlug },
@@ -264,15 +261,12 @@ export default async function CatProfilePage({
             </div>
           )}
 
-          <AnimalProfileActions
+          <AnimalProfileActionsLoader
             shelterSlug={shelterSlug}
             animalSlug={animal.slug}
             animalName={animal.name}
             monthlyGoal={decimalToNumber(animal.monthlyGoal)}
             minCuratorshipAmount={decimalToNumber(animal.minCuratorshipAmount)}
-            isLoggedIn={!!session}
-            userFullName={session?.appUser.fullName}
-            userEmail={session?.appUser.email}
           />
         </div>
       </article>

@@ -8,6 +8,8 @@ import { Heart, HandCoins, Sparkles, Cat, MessageCircle, Utensils, Stethoscope, 
 
 const SHELTER_SLUG = "kotoxata";
 
+export const revalidate = 300;
+
 export default async function HomePage({
   params,
 }: {
