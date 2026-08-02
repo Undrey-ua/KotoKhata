@@ -36,12 +36,16 @@ async function grantVolunteerAccess(
   userId: string,
   email: string,
 ) {
-  await prisma.shelterMember.create({
-    data: {
+  await prisma.shelterMember.upsert({
+    where: {
+      shelterId_userId: { shelterId, userId },
+    },
+    create: {
       shelterId,
       userId,
       role: ShelterMemberRole.VOLUNTEER,
     },
+    update: {},
   });
 
   await prisma.volunteerInvite.updateMany({
