@@ -1,14 +1,8 @@
 import { Link } from "@/i18n/navigation";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
-import {
-  ActionHint,
-  CuratorStatusSelect,
-  StatusBadge,
-} from "@/components/crm/curator-status-select";
+import { CuratorStatusSelect, StatusBadge } from "@/components/crm/curator-status-select";
 import { formatUah } from "@/lib/animal-funding";
 import {
-  curatorRelationshipLabels,
-  curatorStatusBadgeClass,
   formatPaymentDate,
   paymentTimelinessBadgeClass,
   paymentTimelinessLabels,

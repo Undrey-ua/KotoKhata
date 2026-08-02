@@ -196,10 +196,6 @@ export default async function HomePage({
               </article>
             ))}
           </div>
-
-          <p className="mx-auto mt-8 max-w-2xl rounded-xl border border-border-cool bg-card/80 px-5 py-4 text-center text-sm text-muted-foreground">
-            {t("funds.transparency")}
-          </p>
         </div>
       </section>
 

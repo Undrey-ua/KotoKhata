@@ -5,7 +5,6 @@ import type { AnimalFormData } from "@/lib/serialize";
 import {
   AnimalPersonality,
   AnimalSex,
-  AnimalStatus,
 } from "@prisma/client";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";

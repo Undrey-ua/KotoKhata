@@ -66,18 +66,26 @@ export function VolunteersPanel({
         <div className="rounded-xl border border-border-cool bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Запросити волонтера</h2>
+            <h2 className="font-semibold text-foreground">Додати волонтера</h2>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Введіть email. Якщо людина ще не зареєстрована — доступ з&apos;явиться
-            автоматично після реєстрації.
+            Створіть обліковий запис з email і паролем. Підтвердження пошти не
+            потрібне — волонтер одразу може увійти через /uk/staff/login.
           </p>
 
-          <form action={action} className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="email" className="sr-only">
-                Email
-              </Label>
+          <form action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="fullName">Ім&apos;я</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                type="text"
+                placeholder="Олена Коваленко"
+                autoComplete="name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 name="email"
@@ -87,9 +95,23 @@ export function VolunteersPanel({
                 autoComplete="email"
               />
             </div>
-            <Button type="submit" disabled={pending}>
-              {pending ? "…" : "Запросити"}
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="password">Пароль *</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minLength={6}
+                placeholder="Мінімум 6 символів"
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Button type="submit" disabled={pending}>
+                {pending ? "…" : "Додати волонтера"}
+              </Button>
+            </div>
           </form>
 
           {state?.error && (

@@ -5,12 +5,18 @@ import { ShelterMemberRole } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireShelterMember } from "@/lib/auth/session";
+import { createOrUpdateConfirmedAuthUser } from "@/lib/auth/admin-create-user";
+import { syncUserFromAuth } from "@/lib/auth/sync-user";
 
-const emailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .email("Невірний формат email");
+const addVolunteerSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Невірний формат email"),
+  password: z.string().min(6, "Пароль — мінімум 6 символів"),
+  fullName: z
+    .string()
+    .trim()
+    .transform((v) => (v.length ? v : undefined))
+    .optional(),
+});
 
 function revalidateVolunteerPaths(shelterSlug: string) {
   revalidatePath(`/crm/${shelterSlug}`);
@@ -25,6 +31,25 @@ async function requireAdmin(shelterSlug: string) {
   return { ctx } as const;
 }
 
+async function grantVolunteerAccess(
+  shelterId: string,
+  userId: string,
+  email: string,
+) {
+  await prisma.shelterMember.create({
+    data: {
+      shelterId,
+      userId,
+      role: ShelterMemberRole.VOLUNTEER,
+    },
+  });
+
+  await prisma.volunteerInvite.updateMany({
+    where: { shelterId, email, acceptedAt: null },
+    data: { acceptedAt: new Date() },
+  });
+}
+
 export async function inviteVolunteerAction(
   shelterSlug: string,
   _prevState: { error?: string; success?: boolean; message?: string } | null,
@@ -34,22 +59,22 @@ export async function inviteVolunteerAction(
   if ("error" in adminCheck) return adminCheck;
   const { ctx } = adminCheck;
 
-  const parsed = emailSchema.safeParse(formData.get("email"));
+  const parsed = addVolunteerSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    fullName: formData.get("fullName"),
+  });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Невірний email" };
+    return { error: parsed.error.issues[0]?.message ?? "Перевірте дані форми" };
   }
 
-  const email = parsed.data;
+  const { email, password, fullName } = parsed.data;
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-
-  if (existingUser) {
-    const existingMember = await prisma.shelterMember.findUnique({
+  try {
+    const existingMember = await prisma.shelterMember.findFirst({
       where: {
-        shelterId_userId: {
-          shelterId: ctx.shelterId,
-          userId: existingUser.id,
-        },
+        shelterId: ctx.shelterId,
+        user: { email },
       },
     });
 
@@ -57,47 +82,43 @@ export async function inviteVolunteerAction(
       return { error: "Цей користувач вже має доступ до притулку" };
     }
 
-    await prisma.shelterMember.create({
-      data: {
-        shelterId: ctx.shelterId,
-        userId: existingUser.id,
-        role: ShelterMemberRole.VOLUNTEER,
-      },
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+
+    const { user: authUser, created } = await createOrUpdateConfirmedAuthUser({
+      email,
+      password,
+      fullName: fullName ?? existingUser?.fullName ?? undefined,
     });
 
-    await prisma.volunteerInvite.updateMany({
-      where: { shelterId: ctx.shelterId, email, acceptedAt: null },
-      data: { acceptedAt: new Date() },
-    });
+    await syncUserFromAuth(authUser);
+
+    if (fullName) {
+      await prisma.user.update({
+        where: { id: authUser.id },
+        data: { fullName },
+      });
+    }
+
+    await grantVolunteerAccess(ctx.shelterId, authUser.id, email);
 
     revalidateVolunteerPaths(shelterSlug);
     return {
       success: true,
-      message: `${email} — доступ надано. Може увійти на /uk/staff/login`,
+      message: created
+        ? `${email} — обліковий запис створено. Вхід: /uk/staff/login`
+        : `${email} — доступ надано. Вхід: /uk/staff/login`,
     };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Не вдалося додати волонтера";
+    if (message.includes("Supabase admin credentials")) {
+      return {
+        error:
+          "Не налаштовано SUPABASE_SERVICE_ROLE_KEY — зверніться до розробника",
+      };
+    }
+    return { error: message };
   }
-
-  await prisma.volunteerInvite.upsert({
-    where: {
-      shelterId_email: { shelterId: ctx.shelterId, email },
-    },
-    create: {
-      shelterId: ctx.shelterId,
-      email,
-      role: ShelterMemberRole.VOLUNTEER,
-      invitedById: ctx.userId,
-    },
-    update: {
-      invitedById: ctx.userId,
-      acceptedAt: null,
-    },
-  });
-
-  revalidateVolunteerPaths(shelterSlug);
-  return {
-    success: true,
-    message: `Запрошення для ${email}. Доступ з'явиться після реєстрації на сайті.`,
-  };
 }
 
 export async function revokeVolunteerAccessAction(
