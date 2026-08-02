@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/actions/auth";
@@ -17,6 +18,8 @@ import {
   BarChart3,
   Settings,
   Users,
+  Menu,
+  X,
 } from "lucide-react";
 
 type CrmNavProps = {
@@ -24,10 +27,30 @@ type CrmNavProps = {
   shelterName: string;
 };
 
+type NavLink = {
+  href?: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  match?: (p: string) => boolean;
+  enabled: boolean;
+};
+
 export function CrmNav({ shelterSlug, shelterName }: CrmNavProps) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const links = [
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  const links: NavLink[] = [
     {
       href: `/crm/${shelterSlug}`,
       label: "Панель",
@@ -71,74 +94,168 @@ export function CrmNav({ shelterSlug, shelterName }: CrmNavProps) {
     { label: "Налаштування", icon: Settings, enabled: false },
   ];
 
+  const enabledLinks = links.filter((item) => item.enabled && item.href);
+  const comingSoonLinks = links.filter((item) => !item.enabled || !item.href);
+
+  function renderNavLink(item: NavLink, onNavigate?: () => void) {
+    const Icon = item.icon;
+    const active = item.href && item.match?.(pathname);
+
+    if (!item.enabled || !item.href) {
+      return (
+        <span
+          key={item.label}
+          className="flex cursor-not-allowed items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-charcoal-foreground/35"
+          title="Скоро"
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          {item.label}
+          <span className="ml-auto rounded bg-white/10 px-1.5 py-0.5 text-[10px]">
+            скоро
+          </span>
+        </span>
+      );
+    }
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onNavigate}
+        className={cn(
+          "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+          active
+            ? "bg-primary text-primary-foreground"
+            : "text-charcoal-foreground/75 hover:bg-white/10 hover:text-charcoal-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        {item.label}
+      </Link>
+    );
+  }
+
   return (
-    <aside className="flex w-full flex-col bg-charcoal text-charcoal-foreground lg:w-60 lg:min-h-[calc(100vh-4rem)]">
-      <div className="border-b border-white/10 p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-charcoal-foreground/50">
-          CRM
-        </p>
-        <p className="mt-1 font-semibold">{shelterName}</p>
+    <>
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-charcoal px-4 py-3 text-charcoal-foreground lg:hidden">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-charcoal-foreground/50">
+            CRM
+          </p>
+          <p className="truncate font-semibold">{shelterName}</p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="shrink-0 text-charcoal-foreground hover:bg-white/10"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Відкрити меню"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
       </div>
 
-      <nav className="flex flex-1 gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible">
-        {links.map((item) => {
-          const Icon = item.icon;
-          const active = item.href && item.match?.(pathname);
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden
+        />
+      )}
 
-          if (!item.enabled || !item.href) {
-            return (
-              <span
-                key={item.label}
-                className="flex cursor-not-allowed items-center gap-2 rounded-lg px-3 py-2 text-sm text-charcoal-foreground/35"
-                title="Скоро"
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="whitespace-nowrap">{item.label}</span>
-                <span className="ml-auto hidden rounded bg-white/10 px-1.5 py-0.5 text-[10px] lg:inline">
-                  скоро
-                </span>
-              </span>
-            );
-          }
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-charcoal-foreground/75 hover:bg-white/10 hover:text-charcoal-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
-
-        <Link
-          href={`/s/${shelterSlug}/cats`}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-charcoal-foreground/75 hover:bg-white/10 lg:mt-2"
-        >
-          <ExternalLink className="h-4 w-4 shrink-0" />
-          Сайт
-        </Link>
-      </nav>
-
-      <div className="hidden border-t border-white/10 p-3 lg:block">
-        <form action={logoutAction}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-[min(100vw-3rem,18rem)] flex-col bg-charcoal text-charcoal-foreground transition-transform duration-200 lg:hidden",
+          menuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 p-4">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wider text-charcoal-foreground/50">
+              CRM
+            </p>
+            <p className="truncate font-semibold">{shelterName}</p>
+          </div>
           <Button
-            type="submit"
+            type="button"
             variant="ghost"
             size="sm"
-            className="w-full text-charcoal-foreground/75 hover:bg-white/10 hover:text-charcoal-foreground"
+            className="shrink-0 text-charcoal-foreground hover:bg-white/10"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Закрити меню"
           >
-            Вийти
+            <X className="h-5 w-5" />
           </Button>
-        </form>
-      </div>
-    </aside>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+          {enabledLinks.map((item) => renderNavLink(item, () => setMenuOpen(false)))}
+
+          <Link
+            href={`/s/${shelterSlug}/cats`}
+            onClick={() => setMenuOpen(false)}
+            className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-charcoal-foreground/75 hover:bg-white/10"
+          >
+            <ExternalLink className="h-4 w-4 shrink-0" />
+            Сайт
+          </Link>
+
+          <div className="my-2 border-t border-white/10 pt-2">
+            <p className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-charcoal-foreground/40">
+              Незабаром
+            </p>
+            {comingSoonLinks.map((item) => renderNavLink(item))}
+          </div>
+        </nav>
+
+        <div className="border-t border-white/10 p-3">
+          <form action={logoutAction}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className="w-full text-charcoal-foreground/75 hover:bg-white/10 hover:text-charcoal-foreground"
+            >
+              Вийти
+            </Button>
+          </form>
+        </div>
+      </aside>
+
+      <aside className="hidden w-60 shrink-0 flex-col bg-charcoal text-charcoal-foreground lg:flex lg:min-h-[calc(100vh-4rem)]">
+        <div className="border-b border-white/10 p-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-charcoal-foreground/50">
+            CRM
+          </p>
+          <p className="mt-1 font-semibold">{shelterName}</p>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+          {links.map((item) => renderNavLink(item))}
+
+          <Link
+            href={`/s/${shelterSlug}/cats`}
+            className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-charcoal-foreground/75 hover:bg-white/10"
+          >
+            <ExternalLink className="h-4 w-4 shrink-0" />
+            Сайт
+          </Link>
+        </nav>
+
+        <div className="border-t border-white/10 p-3">
+          <form action={logoutAction}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className="w-full text-charcoal-foreground/75 hover:bg-white/10 hover:text-charcoal-foreground"
+            >
+              Вийти
+            </Button>
+          </form>
+        </div>
+      </aside>
+    </>
   );
 }

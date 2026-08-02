@@ -144,8 +144,8 @@ export function TelegramLinkCard({
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Команда для бота
               </p>
-              <div className="mt-2 flex items-center gap-2">
-                <code className="flex-1 rounded bg-background px-3 py-2 font-mono text-sm text-foreground">
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <code className="break-all rounded bg-background px-3 py-2 font-mono text-xs text-foreground sm:flex-1 sm:text-sm">
                   {command}
                 </code>
                 <Button

@@ -104,48 +104,55 @@ export default async function CrmCuratorDetailPage({
             {curator.wards.map((ward) => (
               <li
                 key={ward.sponsorshipId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-cool bg-surface-cool/40 px-4 py-3"
+                className="rounded-lg border border-border-cool bg-surface-cool/40 px-4 py-3"
               >
-                <div>
-                  <Link
-                    href={`/crm/${shelterSlug}/animals/${ward.animalId}`}
-                    className="font-medium text-foreground hover:text-primary"
-                  >
-                    {ward.animalName}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    з {formatPaymentDate(ward.startedAt, locale)}
-                  </p>
-                </div>
-                <div className="min-w-[200px] space-y-2 text-right">
-                  <p className="font-medium">{formatUah(ward.monthlyAmount)}/міс</p>
-                  <CuratorStatusSelect
-                    shelterSlug={shelterSlug}
-                    sponsorshipId={ward.sponsorshipId}
-                    value={ward.curatorStatus}
-                    compact
-                  />
-                  <div className="flex flex-wrap justify-end gap-1">
-                    <StatusBadge
-                      label={paymentTimelinessLabels[ward.paymentState.paymentTimeliness]}
-                      className={
-                        paymentTimelinessBadgeClass[ward.paymentState.paymentTimeliness]
-                      }
-                    />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <Link
+                      href={`/crm/${shelterSlug}/animals/${ward.animalId}`}
+                      className="font-medium text-foreground hover:text-primary"
+                    >
+                      {ward.animalName}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      з {formatPaymentDate(ward.startedAt, locale)}
+                    </p>
+                    <p className="mt-2 font-medium sm:hidden">
+                      {formatUah(ward.monthlyAmount)}/міс
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {recommendedActionLabels[ward.paymentState.recommendedAction]}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Наступний внесок:{" "}
-                    {formatPaymentDate(ward.paymentState.nextExpectedPayment, locale)}
-                  </p>
-                  <div className="flex justify-end">
-                    <CuratorWardActions
+                  <div className="w-full space-y-2 sm:max-w-xs sm:text-right">
+                    <p className="hidden font-medium sm:block">
+                      {formatUah(ward.monthlyAmount)}/міс
+                    </p>
+                    <CuratorStatusSelect
                       shelterSlug={shelterSlug}
                       sponsorshipId={ward.sponsorshipId}
-                      status={ward.status}
+                      value={ward.curatorStatus}
+                      compact
                     />
+                    <div className="flex flex-wrap gap-1 sm:justify-end">
+                      <StatusBadge
+                        label={paymentTimelinessLabels[ward.paymentState.paymentTimeliness]}
+                        className={
+                          paymentTimelinessBadgeClass[ward.paymentState.paymentTimeliness]
+                        }
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {recommendedActionLabels[ward.paymentState.recommendedAction]}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Наступний внесок:{" "}
+                      {formatPaymentDate(ward.paymentState.nextExpectedPayment, locale)}
+                    </p>
+                    <div className="sm:flex sm:justify-end">
+                      <CuratorWardActions
+                        shelterSlug={shelterSlug}
+                        sponsorshipId={ward.sponsorshipId}
+                        status={ward.status}
+                      />
+                    </div>
                   </div>
                 </div>
               </li>
@@ -159,8 +166,46 @@ export default async function CrmCuratorDetailPage({
         {curator.payments.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">Платежів поки немає.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+          <>
+            <ul className="mt-4 space-y-3 md:hidden">
+              {curator.payments.map((payment) => (
+                <li
+                  key={payment.id}
+                  className="rounded-lg border border-border-cool bg-surface-cool/30 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{formatUah(payment.amount)}</p>
+                      <p className="text-sm text-muted-foreground">{payment.kindLabel}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {formatPaymentDate(payment.date, locale)}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {payment.animalName ?? "—"}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        paymentStatusClass[payment.status],
+                      )}
+                    >
+                      {paymentStatusLabels[payment.status]}
+                    </span>
+                    <PaymentRowActions
+                      shelterSlug={shelterSlug}
+                      paymentId={payment.id}
+                      status={payment.status}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-4 hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-border-cool text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="pb-2 pr-4 font-medium">Дата</th>
@@ -203,7 +248,8 @@ export default async function CrmCuratorDetailPage({
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </section>
 

@@ -7,12 +7,14 @@ type ConfirmPaymentButtonProps = {
   action: () => Promise<{ error?: string; success?: boolean }>;
   label?: string;
   variant?: "default" | "outline" | "ghost";
+  className?: string;
 };
 
 export function ConfirmPaymentButton({
   action,
   label = "Підтвердити",
   variant = "default",
+  className,
 }: ConfirmPaymentButtonProps) {
   const [pending, startTransition] = useTransition();
 
@@ -23,7 +25,14 @@ export function ConfirmPaymentButton({
   }
 
   return (
-    <Button type="button" size="sm" variant={variant} disabled={pending} onClick={handleClick}>
+    <Button
+      type="button"
+      size="sm"
+      variant={variant}
+      disabled={pending}
+      onClick={handleClick}
+      className={className}
+    >
       {pending ? "…" : label}
     </Button>
   );

@@ -63,12 +63,12 @@ export default async function EditAnimalPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-foreground">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-foreground sm:text-2xl">
           Редагувати: {animal.name}
         </h1>
-        <form action={hideAction}>
-          <Button type="submit" variant="outline">
+        <form action={hideAction} className="w-full sm:w-auto">
+          <Button type="submit" variant="outline" className="w-full sm:w-auto">
             Приховати з сайту
           </Button>
         </form>

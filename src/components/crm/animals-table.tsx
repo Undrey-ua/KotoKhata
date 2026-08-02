@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
 import { DeleteAnimalButton } from "@/components/crm/delete-animal-button";
+import { Button } from "@/components/ui/button";
 import { getCrmStatusLabel } from "@/lib/animal-labels";
 import { formatUah } from "@/lib/animal-funding";
 import type { CrmAnimalRow } from "@/lib/crm/animals-list";
@@ -90,9 +91,95 @@ export function AnimalsTable({
   }
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-border-cool bg-card shadow-sm sm:mt-6">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-left text-sm">
+    <div className="mt-4 sm:mt-6">
+      <ul className="space-y-3 md:hidden">
+        {rows.map((row) => {
+          const deleteBlocked = row.funding.hasCurators || row.pendingCount > 0;
+
+          return (
+            <li
+              key={row.id}
+              className={cn(
+                "rounded-xl border border-border-cool bg-card p-4 shadow-sm",
+                row.funding.hasCurators && "border-primary/20 bg-warm/5",
+              )}
+            >
+              <Link
+                href={`/crm/${shelterSlug}/animals/${row.id}`}
+                className="flex items-start gap-3"
+              >
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border-cool">
+                  <AnimalCardImage
+                    src={row.coverUrl}
+                    name={row.name}
+                    objectFit="cover"
+                    className="h-14 w-14 object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground">{row.name}</p>
+                  <p className="text-xs text-muted-foreground">{row.slug}</p>
+                  <p className="mt-1 text-sm">{getCrmStatusLabel(row.status)}</p>
+                </div>
+              </Link>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {row.isPublic ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    <Eye className="h-3 w-3" />
+                    На сайті
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-stone px-2 py-0.5 text-xs text-muted-foreground">
+                    <EyeOff className="h-3 w-3" />
+                    Прихований
+                  </span>
+                )}
+                {row.isFeatured && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                    <Star className="h-3 w-3 fill-current" />
+                    Головна
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 space-y-2 border-t border-border-cool pt-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Потреба/міс</span>
+                  <span className="font-medium">
+                    {row.funding.monthlyGoal != null
+                      ? formatUah(row.funding.monthlyGoal)
+                      : "—"}
+                  </span>
+                </div>
+                <FundingCell row={row} />
+                {(row.curators.length > 0 || row.pendingCount > 0) && (
+                  <CuratorsCell row={row} />
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button asChild size="sm" className="flex-1 sm:flex-none">
+                  <Link href={`/crm/${shelterSlug}/animals/${row.id}`}>Редагувати</Link>
+                </Button>
+                {onDelete && (
+                  <DeleteAnimalButton
+                    animalId={row.id}
+                    animalName={row.name}
+                    blocked={deleteBlocked}
+                    deleteAction={onDelete}
+                    variant="table"
+                  />
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-hidden rounded-xl border border-border-cool bg-card shadow-sm md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[960px] text-left text-sm">
           <thead>
             <tr className="border-b border-border-cool bg-surface-cool/60 text-xs uppercase tracking-wide text-muted-foreground">
               <th className="px-4 py-3 font-medium">Котик</th>
@@ -199,6 +286,7 @@ export function AnimalsTable({
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

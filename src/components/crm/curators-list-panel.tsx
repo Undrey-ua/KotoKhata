@@ -20,12 +20,14 @@ type CuratorsListPanelProps = {
 
 function SummaryCard({
   title,
+  shortTitle,
   count,
   tone,
   active,
   onClick,
 }: {
   title: string;
+  shortTitle?: string;
   count: number;
   tone: "good" | "warn" | "alert";
   active?: boolean;
@@ -48,7 +50,10 @@ function SummaryCard({
       )}
     >
       <p className="text-2xl font-bold text-foreground">{count}</p>
-      <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{title}</p>
+      <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+        <span className="sm:hidden">{shortTitle ?? title}</span>
+        <span className="hidden sm:inline">{title}</span>
+      </p>
     </button>
   );
 }
@@ -114,9 +119,10 @@ export function CuratorsListPanel({
 
   return (
     <>
-      <div className="mt-5 grid gap-2 sm:grid-cols-3 sm:gap-3">
+      <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
         <SummaryCard
           title="🟢 Все добре — платежі вчасно"
+          shortTitle="Все добре"
           count={summary.allGood}
           tone="good"
           active={listFilter === "all_active"}
@@ -124,6 +130,7 @@ export function CuratorsListPanel({
         />
         <SummaryCard
           title="🟡 Потрібно нагадати (30–90 днів)"
+          shortTitle="Нагадати"
           count={summary.needReminder}
           tone="warn"
           active={listFilter === "need_reminder"}
@@ -131,6 +138,7 @@ export function CuratorsListPanel({
         />
         <SummaryCard
           title="🔴 Потрібна увага (90+ днів)"
+          shortTitle="Увага"
           count={summary.needAttention}
           tone="alert"
           active={listFilter === "need_contact"}
@@ -146,16 +154,18 @@ export function CuratorsListPanel({
         totalCount={rows.length}
       />
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {FILTER_OPTIONS.map(({ value, label }) => (
-          <FilterChip
-            key={value || "all"}
-            active={listFilter === value}
-            onClick={() => setListFilter(value)}
-          >
-            {label}
-          </FilterChip>
-        ))}
+      <div className="-mx-1 mt-3 overflow-x-auto pb-1">
+        <div className="flex w-max gap-1.5 px-1 sm:w-auto sm:flex-wrap">
+          {FILTER_OPTIONS.map(({ value, label }) => (
+            <FilterChip
+              key={value || "all"}
+              active={listFilter === value}
+              onClick={() => setListFilter(value)}
+            >
+              {label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
 
       <CuratorsTable

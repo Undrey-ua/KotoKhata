@@ -19,7 +19,7 @@ export default async function CrmLayout({
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-surface-cool/30 lg:flex-row">
       <CrmNav shelterSlug={shelterSlug} shelterName={ctx.shelter.name} />
-      <div className="flex-1 p-4 sm:p-6 lg:p-8">{children}</div>
+      <div className="flex-1 p-3 sm:p-6 lg:p-8">{children}</div>
     </div>
   );
 }
