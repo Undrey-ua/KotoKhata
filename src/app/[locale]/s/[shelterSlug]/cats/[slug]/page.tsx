@@ -117,20 +117,13 @@ export default async function CatProfilePage({
 
       <article className="mt-6 overflow-hidden rounded-2xl border border-border-cool bg-card shadow-sm">
         <div className="grid lg:grid-cols-[340px_1fr]">
-          <div className="border-b border-border-cool bg-surface-cool/40 p-4 lg:border-b-0 lg:border-r">
-            {cover ? (
-              <SafeImage
-                src={cover.url}
-                alt={animal.name}
-                className="aspect-square w-full rounded-xl bg-surface-cool object-contain"
-              />
-            ) : (
-              <AnimalCardImage
-                src={null}
-                name={animal.name}
-                className="aspect-square w-full rounded-xl"
-              />
-            )}
+          <div className="overflow-hidden border-b border-border-cool lg:border-b-0 lg:border-r">
+            <AnimalCardImage
+              src={cover?.url ?? null}
+              name={animal.name}
+              objectFit="cover"
+              className="aspect-[3/4] w-full"
+            />
           </div>
 
           <div className="p-6 sm:p-8">

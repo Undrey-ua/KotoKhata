@@ -96,7 +96,8 @@ export default async function HomePage({
                   <AnimalCardImage
                     src={featured.imageUrl}
                     name={featured.name}
-                    className="aspect-[4/3] w-full"
+                    objectFit="cover"
+                    className="aspect-[3/4] w-full"
                   />
                   <div className="border-t border-border-cool bg-card px-4 py-3">
                     <p className="font-semibold text-foreground">{featured.name}</p>
@@ -104,7 +105,7 @@ export default async function HomePage({
                   </div>
                 </Link>
               ) : (
-                <div className="flex aspect-[4/3] flex-col items-center justify-center gap-3 bg-surface-cool p-8 text-center">
+                <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 bg-surface-cool p-8 text-center">
                   <BrandLogo size={80} />
                   <p className="text-sm text-muted-foreground">{t("featuredPlaceholder")}</p>
                 </div>
