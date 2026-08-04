@@ -113,7 +113,7 @@
         },
         "shelter": {
           "title": "Shelter operations",
-          "description": "Rent, utilities, and day-to-day running of the shelter."
+          "description": "Rent, utilities, transportation, staff salaries, and other essential costs that keep the shelter running and ensure our cats receive daily care"
         }
       },
       "transparency": "Payments are manually confirmed by an admin during MVP. Public financial reports coming soon."
