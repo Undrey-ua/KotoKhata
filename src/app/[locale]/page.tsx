@@ -120,7 +120,7 @@ export default async function HomePage({
                 <Link href={`/s/${SHELTER_SLUG}/cats`}>{t("ctaFindFriend")}</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href={`/s/${SHELTER_SLUG}/cats`}>{t("ctaShelter")}</Link>
+                <Link href="/#curatorship">{t("ctaSponsor")}</Link>
               </Button>
             </div>
           </div>
