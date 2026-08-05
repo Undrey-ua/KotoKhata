@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { CatFilters } from "@/components/catalog/cat-filters";
 import { CatalogCatCard } from "@/components/catalog/catalog-cat-card";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   hasActiveFilters,
   parseCatalogFilters,
@@ -12,8 +13,34 @@ import { isAdopted } from "@/lib/animal-labels";
 import { matchesCatalogAgeFilter } from "@/lib/animal-age";
 import { coverMediaUrl } from "@/lib/serialize";
 import { getAnimalsFunding } from "@/lib/animal-funding";
+import { buildAbsoluteUrl, buildPageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; shelterSlug: string }>;
+}) {
+  const { locale, shelterSlug } = await params;
+  const shelter = await prisma.shelter.findUnique({
+    where: { slug: shelterSlug },
+    select: { name: true },
+  });
+
+  if (!shelter) {
+    return {};
+  }
+
+  const tc = await getTranslations({ locale, namespace: "catalog" });
+
+  return buildPageMetadata({
+    locale,
+    pathname: `/s/${shelterSlug}/cats`,
+    title: `${tc("title")} — ${shelter.name}`,
+    description: tc("subtitle"),
+  });
+}
 
 export default async function CatsCatalogPage({
   params,
@@ -91,6 +118,23 @@ export default async function CatsCatalogPage({
   });
 
   return (
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: `${tc("title")} — ${shelter.name}`,
+          itemListElement: sortedAnimals.map((animal, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: buildAbsoluteUrl(
+              locale,
+              `/s/${shelterSlug}/cats/${animal.slug}`,
+            ),
+            name: animal.name,
+          })),
+        }}
+      />
     <div className="min-h-full bg-gradient-to-b from-surface-cool/80 to-background">
       <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-14">
         <header className="mb-5 max-w-2xl sm:mb-8">
@@ -150,5 +194,6 @@ export default async function CatsCatalogPage({
         )}
       </div>
     </div>
+    </>
   );
 }

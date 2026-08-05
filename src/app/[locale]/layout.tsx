@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { geistMono, geistSans } from "@/lib/fonts";
 import { getAppSession } from "@/lib/auth/session";
 import { getActiveSponsorships, resolveCuratorHomeHref } from "@/lib/auth/curator";
-import { SetHtmlLang } from "@/components/set-html-lang";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { routing } from "@/i18n/routing";
+import { getMetadataBase } from "@/lib/seo/metadata";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -22,6 +23,7 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "common" });
 
   return {
+    metadataBase: getMetadataBase(),
     title: {
       default: t("brand"),
       template: `%s | ${t("brand")}`,
@@ -60,17 +62,22 @@ export default async function LocaleLayout({
       : null;
 
   return (
-    <NextIntlClientProvider messages={messages}>
-      <SetHtmlLang locale={locale} />
-      <div className="flex min-h-screen flex-col">
-        <SiteHeader
-          isLoggedIn={!!session}
-          curatorHref={curatorHref}
-          staffCrmHref={staffCrmHref}
-        />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
-      </div>
-    </NextIntlClientProvider>
+    <html lang={locale} suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}
+      >
+        <NextIntlClientProvider messages={messages}>
+          <div className="flex min-h-screen flex-col">
+            <SiteHeader
+              isLoggedIn={!!session}
+              curatorHref={curatorHref}
+              staffCrmHref={staffCrmHref}
+            />
+            <main className="flex-1">{children}</main>
+            <SiteFooter />
+          </div>
+        </NextIntlClientProvider>
+      </body>
+    </html>
   );
 }

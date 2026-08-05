@@ -2,13 +2,31 @@ import { Link } from "@/i18n/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/seo/json-ld";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { getFeaturedAnimal, getShelterStats } from "@/lib/shelter-stats";
+import { buildAbsoluteUrl, buildPageMetadata, getMetadataBase } from "@/lib/seo/metadata";
 import { Heart, HandCoins, Sparkles, Cat, MessageCircle, Utensils, Stethoscope, Package, Building2 } from "lucide-react";
 
 const SHELTER_SLUG = "kotoxata";
 
 export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "landing" });
+
+  return buildPageMetadata({
+    locale,
+    pathname: "/",
+    title: t("heroTitle"),
+    description: t("heroSubtitle"),
+  });
+}
 
 export default async function HomePage({
   params,
@@ -66,8 +84,24 @@ export default async function HomePage({
     { icon: Building2, ...t.raw("funds.items.shelter") as { title: string; description: string } },
   ];
 
+  const siteUrl = buildAbsoluteUrl(locale, "/");
+  const logoUrl = new URL("/brand/logo.png", getMetadataBase()).toString();
+
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "NGO",
+          name: "KotoXata",
+          alternateName: "Котохата",
+          url: siteUrl,
+          description: t("heroSubtitle"),
+          logo: logoUrl,
+          areaServed: "UA",
+          knowsAbout: ["cat adoption", "animal shelter", "pet sponsorship"],
+        }}
+      />
       <section className="relative overflow-hidden border-b border-border-cool/60">
         <div className="absolute inset-0 bg-gradient-to-br from-surface-cool via-background to-[color-mix(in_srgb,var(--warm)_15%,var(--background))]" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">

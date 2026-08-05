@@ -5,7 +5,8 @@
     "language": "Language",
     "login": "Sign in",
     "crm": "Admin",
-    "viewCats": "Meet the cats"
+    "viewCats": "Meet the cats",
+    "backHome": "Back to home"
   },
   "nav": {
     "home": "Home",
@@ -149,6 +150,9 @@
     "clear": "Clear filters",
     "found": "Found: {count}",
     "empty": "No cats in the catalog yet.",
+    "shelterCatCount": "{count, plural, one {# cat in catalog} other {# cats in catalog}}",
+    "notFoundTitle": "Cat not found",
+    "notFoundDescription": "This cat profile is unavailable or has been removed.",
     "noResults": "No cats match the selected filters."
   },
   "animalProfile": {

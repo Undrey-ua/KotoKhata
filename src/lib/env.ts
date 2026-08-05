@@ -11,7 +11,12 @@ function optional(name: string): string | undefined {
 }
 
 export function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const raw = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const trimmed = raw.replace(/\/$/, "");
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
 }
 
 export function isPublicHttpsUrl(url: string) {

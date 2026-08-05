@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { SafeImage } from "@/components/shared/safe-image";
 import { AnimalCardImage } from "@/components/shared/animal-card-image";
+import { JsonLd } from "@/components/seo/json-ld";
 import { AnimalProfileActionsLoader } from "@/components/animal/animal-profile-actions-loader";
 import {
   AnimalPhotoLightboxRoot,
@@ -18,7 +19,8 @@ import {
 } from "@/lib/animal-labels";
 import { prisma } from "@/lib/db/prisma";
 import { getAnimalFunding, decimalToNumber } from "@/lib/animal-funding";
-import { toMediaItems } from "@/lib/serialize";
+import { toMediaItems, mediaDisplayUrl } from "@/lib/serialize";
+import { buildAbsoluteUrl, buildPageMetadata, getMetadataBase } from "@/lib/seo/metadata";
 import { Check, MapPin } from "lucide-react";
 
 export const revalidate = 60;
@@ -34,7 +36,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string; shelterSlug: string; slug: string }>;
 }) {
-  const { shelterSlug, slug } = await params;
+  const { locale, shelterSlug, slug } = await params;
+  const t = await getTranslations({ locale, namespace: "catalog" });
 
   const animal = await prisma.animal.findFirst({
     where: {
@@ -42,17 +45,47 @@ export async function generateMetadata({
       isPublic: true,
       shelter: { slug: shelterSlug },
     },
-    select: { name: true, description: true },
+    select: {
+      name: true,
+      description: true,
+      shelter: { select: { name: true } },
+      media: {
+        where: { type: "PHOTO", isPublic: true },
+        orderBy: [{ isCover: "desc" }, { createdAt: "desc" }],
+        take: 1,
+        select: { id: true },
+      },
+    },
   });
 
   if (!animal) {
-    return { title: "Котик не знайдений" };
+    return buildPageMetadata({
+      locale,
+      pathname: `/s/${shelterSlug}/cats/${slug}`,
+      title: t("notFoundTitle"),
+      description: t("notFoundDescription"),
+      noIndex: true,
+    });
   }
 
-  return {
-    title: animal.name,
-    description: animal.description ?? undefined,
-  };
+  const coverPath = animal.media[0]
+    ? mediaDisplayUrl(animal.media[0].id)
+    : "/brand/logo.png";
+  const coverImage = new URL(coverPath, getMetadataBase()).toString();
+  const description =
+    animal.description ??
+    (locale === "uk"
+      ? `${animal.name} — мешканець притулку ${animal.shelter.name}. Станьте опікуном або подаруйте дім.`
+      : `${animal.name} — a resident of ${animal.shelter.name}. Become a guardian or offer a home.`);
+
+  return buildPageMetadata({
+    locale,
+    pathname: `/s/${shelterSlug}/cats/${slug}`,
+    title: `${animal.name} — ${animal.shelter.name}`,
+    description,
+    images: [coverImage],
+    type: "article",
+  });
 }
 
 export default async function CatProfilePage({
@@ -116,7 +149,24 @@ export default async function CatProfilePage({
     { ok: animal.sterilized, label: tp("sterilized") },
   ];
 
+  const profileUrl = buildAbsoluteUrl(locale, `/s/${shelterSlug}/cats/${slug}`);
+
   return (
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: animal.name,
+          description: animal.description ?? undefined,
+          url: profileUrl,
+          image: cover ? new URL(cover.url, getMetadataBase()).toString() : undefined,
+          brand: {
+            "@type": "Organization",
+            name: shelter.name,
+          },
+        }}
+      />
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <Link
         href={`/s/${shelterSlug}/cats`}
@@ -301,5 +351,6 @@ export default async function CatProfilePage({
       </article>
       </AnimalPhotoLightboxRoot>
     </div>
+    </>
   );
 }

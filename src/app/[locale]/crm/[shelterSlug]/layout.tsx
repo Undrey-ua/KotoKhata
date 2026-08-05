@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { requireShelterMember } from "@/lib/auth/session";
 import { CrmNav } from "@/components/crm/crm-nav";
+import { privatePageMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = privatePageMetadata();
 
 export default async function CrmLayout({
   children,
