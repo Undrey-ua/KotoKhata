@@ -47,7 +47,11 @@ export default async function HomePage({
     { value: stats?.inCare ?? 0, label: ts("inCare") },
     { value: stats?.adopted ?? 0, label: ts("adopted") },
     { value: stats?.guardians ?? 0, label: ts("guardians") },
-    { value: stats?.news ?? 0, label: ts("news") },
+    {
+      value: stats?.news ?? 0,
+      label: ts("news"),
+      href: `/s/${SHELTER_SLUG}/life`,
+    },
   ];
 
   const features = [
@@ -153,12 +157,29 @@ export default async function HomePage({
 
       <section className="border-b border-border-cool bg-card">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 sm:grid-cols-4 sm:px-6">
-          {statItems.map(({ value, label }) => (
-            <div key={label} className="text-center">
-              <p className="text-3xl font-bold text-primary sm:text-4xl">{value}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{label}</p>
-            </div>
-          ))}
+          {statItems.map(({ value, label, href }) => {
+            const content = (
+              <>
+                <p className="text-3xl font-bold text-primary sm:text-4xl">{value}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{label}</p>
+              </>
+            );
+
+            return (
+              <div key={label} className="text-center">
+                {href ? (
+                  <Link
+                    href={href}
+                    className="block rounded-xl px-2 py-1 transition-colors hover:bg-surface-cool/60"
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  content
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

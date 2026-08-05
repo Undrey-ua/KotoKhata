@@ -51,6 +51,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "daily",
         priority: 0.9,
       });
+
+      entries.push({
+        url: `${baseUrl}/${locale}/s/${shelter.slug}/life`,
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 0.75,
+      });
     }
 
     for (const animal of animals) {

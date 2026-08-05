@@ -12,19 +12,30 @@
     "home": "Home",
     "animals": "Cats",
     "cats": "Cats",
-    "help": "How to help",
+    "help": "Help",
     "about": "About",
     "telegram": "Telegram",
+    "life": "Life",
     "support": "Support",
     "curatorLogin": "Curator login",
+    "curatorLoginShort": "Sign in",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu",
     "myWard": "My ward",
     "crm": "CRM"
   },
   "stats": {
-    "inCare": "in care",
+    "inCare": "residents",
     "adopted": "rehomed",
     "guardians": "guardians",
-    "news": "updates"
+    "news": "life stories"
+  },
+  "shelterLife": {
+    "title": "Shelter life",
+    "subtitle": "Small stories about our residents — shared by volunteers with guardians and friends of the cats.",
+    "empty": "It's quiet for now — the first stories from our cats will appear here soon.",
+    "fromVolunteer": "from {name}"
   },
   "auth": {
     "signIn": "Sign in",
