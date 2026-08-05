@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { ShelterMemberRole } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireShelterMember } from "@/lib/auth/session";
 import { createOrUpdateConfirmedAuthUser } from "@/lib/auth/admin-create-user";
 import { syncUserFromAuth } from "@/lib/auth/sync-user";
+import { parseUpdateVolunteerForm } from "@/lib/validations/volunteer";
 
 const addVolunteerSchema = z.object({
   email: z.string().trim().toLowerCase().email("Невірний формат email"),
@@ -18,9 +20,12 @@ const addVolunteerSchema = z.object({
     .optional(),
 });
 
-function revalidateVolunteerPaths(shelterSlug: string) {
+function revalidateVolunteerPaths(shelterSlug: string, userId?: string) {
   revalidatePath(`/crm/${shelterSlug}`);
   revalidatePath(`/crm/${shelterSlug}/volunteers`);
+  if (userId) {
+    revalidatePath(`/crm/${shelterSlug}/volunteers/${userId}`);
+  }
 }
 
 async function requireAdmin(shelterSlug: string) {
@@ -156,6 +161,76 @@ export async function revokeVolunteerAccessAction(
 
   await prisma.shelterMember.delete({ where: { id: member.id } });
   revalidateVolunteerPaths(shelterSlug);
+  return { success: true };
+}
+
+export async function revokeVolunteerAccessFromProfileAction(
+  shelterSlug: string,
+  memberId: string,
+) {
+  const result = await revokeVolunteerAccessAction(shelterSlug, memberId);
+  if ("error" in result && result.error) {
+    return { error: result.error };
+  }
+  redirect(`/crm/${shelterSlug}/volunteers`);
+}
+
+export async function updateVolunteerMemberAction(
+  shelterSlug: string,
+  userId: string,
+  _prevState: { error?: string; success?: boolean } | null,
+  formData: FormData,
+) {
+  const adminCheck = await requireAdmin(shelterSlug);
+  if ("error" in adminCheck) return adminCheck;
+  const { ctx } = adminCheck;
+
+  let data;
+  try {
+    data = parseUpdateVolunteerForm(formData);
+  } catch {
+    return { error: "Перевірте дані форми" };
+  }
+
+  const member = await prisma.shelterMember.findFirst({
+    where: { shelterId: ctx.shelterId, userId },
+  });
+
+  if (!member) {
+    return { error: "Волонтера не знайдено" };
+  }
+
+  if (
+    member.role === ShelterMemberRole.ADMIN &&
+    data.role !== ShelterMemberRole.ADMIN
+  ) {
+    const adminCount = await prisma.shelterMember.count({
+      where: { shelterId: ctx.shelterId, role: ShelterMemberRole.ADMIN },
+    });
+    if (adminCount <= 1) {
+      return { error: "Не можна змінити роль останнього адміністратора" };
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: data.fullName,
+        phone: data.phone,
+      },
+    }),
+    prisma.shelterMember.update({
+      where: { id: member.id },
+      data: {
+        role: data.role,
+        bio: data.bio,
+        showOnContacts: data.showOnContacts,
+      },
+    }),
+  ]);
+
+  revalidateVolunteerPaths(shelterSlug, userId);
   return { success: true };
 }
 

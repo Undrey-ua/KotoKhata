@@ -4,6 +4,7 @@ import { useActionState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ShelterMemberRole } from "@prisma/client";
 import { UserPlus, Clock, Trash2 } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,13 +144,18 @@ export function VolunteersPanel({
 
           {volunteers.map((item) => {
             if (item.kind === "member") {
+              const profileHref = `/crm/${shelterSlug}/volunteers/${item.userId}`;
+
               return (
                 <li
                   key={item.id}
-                  className="flex items-center justify-between gap-4 px-5 py-4"
+                  className="group flex items-center justify-between gap-2 px-5 py-4 transition-colors hover:bg-surface-cool/40"
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium text-foreground">
+                  <Link
+                    href={profileHref}
+                    className="min-w-0 flex-1 cursor-pointer rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                  >
+                    <p className="font-medium text-foreground group-hover:text-primary">
                       {item.fullName ?? item.email}
                     </p>
                     {item.fullName && (
@@ -161,19 +167,24 @@ export function VolunteersPanel({
                       {roleLabels[item.role]} · з{" "}
                       {new Date(item.joinedAt).toLocaleDateString("uk-UA")}
                     </p>
-                  </div>
-                  {isAdmin && item.role !== ShelterMemberRole.ADMIN && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={revoking}
-                      onClick={() => handleRevokeMember(item.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={profileHref}>Відкрити</Link>
                     </Button>
-                  )}
+                    {isAdmin && item.role !== ShelterMemberRole.ADMIN && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={revoking}
+                        onClick={() => handleRevokeMember(item.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </li>
               );
             }

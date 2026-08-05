@@ -216,6 +216,8 @@ model ShelterMember {
   shelterId String            @map("shelter_id")
   userId    String            @map("user_id")
   role      ShelterMemberRole @default(VOLUNTEER)
+  bio       String?
+  showOnContacts Boolean      @default(false) @map("show_on_contacts")
 
   joinedAt DateTime @default(now()) @map("joined_at")
 

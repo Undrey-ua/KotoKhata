@@ -1,4 +1,4 @@
-import { ShelterMemberRole } from "@prisma/client";
+import { ShelterMemberRole, TelegramBotType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
 export type VolunteerListItem =
@@ -18,6 +18,127 @@ export type VolunteerListItem =
       role: ShelterMemberRole;
       createdAt: Date;
     };
+
+export type VolunteerDetail = {
+  memberId: string;
+  userId: string;
+  email: string;
+  fullName: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  locale: string;
+  role: ShelterMemberRole;
+  bio: string | null;
+  showOnContacts: boolean;
+  joinedAt: Date;
+  telegram: {
+    linked: boolean;
+    username: string | null;
+    linkedAt: Date | null;
+  };
+  activity: {
+    lifeStories: number;
+    medicalRecords: number;
+    statusChanges: number;
+  };
+};
+
+export async function getVolunteerDetail(
+  shelterId: string,
+  userId: string,
+): Promise<VolunteerDetail | null> {
+  const member = await prisma.shelterMember.findFirst({
+    where: { shelterId, userId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          phone: true,
+          avatarUrl: true,
+          locale: true,
+          telegramAccounts: {
+            where: { botType: TelegramBotType.VOLUNTEER },
+            select: { username: true, linkedAt: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  if (!member) return null;
+
+  const [lifeStories, medicalRecords, statusChanges] = await Promise.all([
+    prisma.lifeStory.count({
+      where: { authorId: userId, animal: { shelterId } },
+    }),
+    prisma.medicalRecord.count({
+      where: { authorId: userId, animal: { shelterId } },
+    }),
+    prisma.animalStatusHistory.count({
+      where: { changedById: userId, animal: { shelterId } },
+    }),
+  ]);
+
+  const telegramAccount = member.user.telegramAccounts[0];
+
+  return {
+    memberId: member.id,
+    userId: member.user.id,
+    email: member.user.email,
+    fullName: member.user.fullName,
+    phone: member.user.phone,
+    avatarUrl: member.user.avatarUrl,
+    locale: member.user.locale,
+    role: member.role,
+    bio: member.bio,
+    showOnContacts: member.showOnContacts,
+    joinedAt: member.joinedAt,
+    telegram: {
+      linked: Boolean(telegramAccount),
+      username: telegramAccount?.username ?? null,
+      linkedAt: telegramAccount?.linkedAt ?? null,
+    },
+    activity: {
+      lifeStories,
+      medicalRecords,
+      statusChanges,
+    },
+  };
+}
+
+export async function getPublicContactVolunteers(shelterId: string) {
+  const members = await prisma.shelterMember.findMany({
+    where: {
+      shelterId,
+      showOnContacts: true,
+      role: { not: ShelterMemberRole.ADMIN },
+    },
+    include: {
+      user: {
+        select: {
+          fullName: true,
+          email: true,
+          phone: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { joinedAt: "asc" },
+  });
+
+  return members.map((member) => ({
+    memberId: member.id,
+    fullName: member.user.fullName,
+    email: member.user.email,
+    phone: member.user.phone,
+    avatarUrl: member.user.avatarUrl,
+    role: member.role,
+    bio: member.bio,
+  }));
+}
 
 export async function getShelterVolunteers(shelterId: string) {
   const [members, invites] = await Promise.all([
