@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -74,6 +75,29 @@ export function AnimalPhotoLightboxRoot({
     });
   }, [photos.length]);
 
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (event: React.TouchEvent) => {
+      const startX = touchStartX.current;
+      const endX = event.changedTouches[0]?.clientX;
+      touchStartX.current = null;
+
+      if (startX == null || endX == null || photos.length <= 1) return;
+
+      const delta = endX - startX;
+      if (Math.abs(delta) < 48) return;
+
+      if (delta > 0) showPrev();
+      else showNext();
+    },
+    [photos.length, showNext, showPrev],
+  );
+
   useEffect(() => {
     if (index === null) return;
 
@@ -135,6 +159,8 @@ export function AnimalPhotoLightboxRoot({
             <div
               className="relative flex min-h-0 flex-1 items-center justify-center px-14 pb-8 pt-2"
               onClick={(event) => event.stopPropagation()}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
             >
               {photos.length > 1 && (
                 <button

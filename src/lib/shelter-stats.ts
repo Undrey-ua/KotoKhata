@@ -34,7 +34,7 @@ export async function getShelterStats(shelterSlug: string) {
       },
     }),
     prisma.lifeStory.count({
-      where: { isPublic: true, animal: { shelterId: shelter.id } },
+      where: { isPublic: true, shelterId: shelter.id },
     }),
   ]);
 

@@ -17,6 +17,12 @@ export async function GET(
     where: { id },
     include: {
       animal: { select: { id: true, isPublic: true, shelterId: true } },
+      lifeStory: {
+        select: {
+          isPublic: true,
+          shelterId: true,
+        },
+      },
     },
   });
 
@@ -24,21 +30,27 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const isPubliclyVisible = media.isPublic && media.animal.isPublic;
+  const shelterId = media.animal?.shelterId ?? media.lifeStory?.shelterId;
+
+  const isPubliclyVisible =
+    media.isPublic &&
+    ((media.animal?.isPublic ?? false) ||
+      ((media.lifeStory?.isPublic ?? false) && !media.animal));
 
   if (!isPubliclyVisible) {
     const session = await getAppSession();
-    const hasShelterAccess = session?.appUser.shelterMemberships.some(
-      (m) => m.shelterId === media.animal.shelterId,
-    );
+
+    const hasShelterAccess =
+      shelterId &&
+      session?.appUser.shelterMemberships.some((m) => m.shelterId === shelterId);
 
     let hasCuratorAccess = false;
-    if (session && !hasShelterAccess) {
+    if (session && media.animalId && !hasShelterAccess) {
       const { userCanAccessAnimalMedia } = await import("@/lib/auth/curator");
       hasCuratorAccess = await userCanAccessAnimalMedia(
         session.appUser.id,
         media.animalId,
-        media.animal.shelterId,
+        media.animal!.shelterId,
       );
     }
 

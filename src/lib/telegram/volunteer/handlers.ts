@@ -1,10 +1,11 @@
 import { Bot, Context } from "grammy";
-import { TelegramBotType, TelegramSessionState } from "@prisma/client";
+import { LifeStoryType, TelegramBotType, TelegramSessionState } from "@prisma/client";
 import { getAppUrl } from "@/lib/env";
 import {
   createAnimalFromTelegram,
   listShelterAnimals,
 } from "@/lib/telegram/create-animal";
+import { publishNewsFromTelegram } from "@/lib/telegram/create-life-story";
 import { downloadTelegramPhoto } from "@/lib/telegram/download";
 import {
   getLinkedVolunteer,
@@ -19,6 +20,8 @@ import {
   afterAnimalKeyboard,
   linkInstructionsKeyboard,
   mainMenuKeyboard,
+  newsAnimalKeyboard,
+  newsSkipPhotoKeyboard,
   MSG,
 } from "@/lib/telegram/volunteer/messages";
 
@@ -183,6 +186,91 @@ async function showMyCats(ctx: Context) {
   });
 }
 
+async function startNewsFlow(ctx: Context) {
+  const linked = await requireVolunteer(ctx);
+  if (!linked) return;
+
+  const chatId = BigInt(ctx.chat!.id);
+  const animals = await listShelterAnimals(linked.shelter.id, 8);
+
+  await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+    state: TelegramSessionState.NEWS_SELECT_ANIMAL,
+    contextData: {},
+    shelterId: linked.shelter.id,
+  });
+
+  await ctx.reply(MSG.newsSelectTarget, {
+    reply_markup: newsAnimalKeyboard(animals),
+  });
+}
+
+async function proceedToNewsPhotoStep(ctx: Context, chatId: bigint) {
+  await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+    state: TelegramSessionState.NEWS_UPLOAD_MEDIA,
+  });
+
+  await ctx.reply(MSG.newsUploadPhoto, {
+    reply_markup: newsSkipPhotoKeyboard(),
+  });
+}
+
+async function handleNewsPhoto(ctx: Context) {
+  const chatId = BigInt(ctx.chat!.id);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const photos = ctx.message?.photo;
+
+  if (session.state !== TelegramSessionState.NEWS_UPLOAD_MEDIA) return;
+  if (!photos?.length) return;
+
+  const largest = photos[photos.length - 1];
+
+  await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+    state: TelegramSessionState.NEWS_WRITE_TEXT,
+    contextData: {
+      ...session.context,
+      photoFileId: largest.file_id,
+    },
+  });
+
+  await ctx.reply(MSG.newsWriteText);
+}
+
+async function handleNewsText(ctx: Context, text: string) {
+  const chatId = BigInt(ctx.chat!.id);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const linked = await requireVolunteer(ctx);
+
+  if (!linked?.shelter) return;
+
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 4000) {
+    await ctx.reply(MSG.newsInvalidText);
+    return;
+  }
+
+  const postType = session.context.postType ?? LifeStoryType.ANIMAL_STORY;
+
+  try {
+    await publishNewsFromTelegram({
+      shelterId: linked.shelter.id,
+      authorId: linked.user.id,
+      type: postType,
+      animalId:
+        postType === LifeStoryType.ANIMAL_STORY
+          ? session.context.animalId
+          : null,
+      content: trimmed,
+      photoFileId: session.context.photoFileId,
+    });
+
+    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+    await ctx.reply(MSG.newsPublished, { reply_markup: mainMenuKeyboard() });
+  } catch {
+    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+    await ctx.reply(MSG.newsFailed, { reply_markup: mainMenuKeyboard() });
+  }
+}
+
 export function registerVolunteerHandlers(bot: Bot) {
   bot.command("start", async (ctx) => {
     const linked = await getLinkedVolunteer(BigInt(ctx.chat!.id));
@@ -202,11 +290,7 @@ export function registerVolunteerHandlers(bot: Bot) {
   });
 
   bot.command("newcat", startNewAnimalFlow);
-  bot.command("news", async (ctx) => {
-    const linked = await requireVolunteer(ctx);
-    if (!linked) return;
-    await ctx.reply(MSG.newsSoon, { reply_markup: mainMenuKeyboard() });
-  });
+  bot.command("news", startNewsFlow);
 
   bot.command("link", async (ctx) => {
     const code = ctx.match?.trim();
@@ -226,9 +310,7 @@ export function registerVolunteerHandlers(bot: Bot) {
         await startNewAnimalFlow(ctx);
         break;
       case "news":
-        if (await requireVolunteer(ctx)) {
-          await ctx.reply(MSG.newsSoon, { reply_markup: mainMenuKeyboard() });
-        }
+        await startNewsFlow(ctx);
         break;
       case "cats":
         await showMyCats(ctx);
@@ -243,12 +325,63 @@ export function registerVolunteerHandlers(bot: Bot) {
     }
   });
 
+  bot.callbackQuery(/^news:/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const linked = await requireVolunteer(ctx);
+    if (!linked) return;
+
+    const chatId = BigInt(ctx.chat!.id);
+    const action = ctx.callbackQuery.data.slice("news:".length);
+
+    if (action === "shelter") {
+      await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+        state: TelegramSessionState.NEWS_UPLOAD_MEDIA,
+        contextData: {
+          postType: LifeStoryType.SHELTER_NEWS,
+        },
+        shelterId: linked.shelter.id,
+      });
+      await proceedToNewsPhotoStep(ctx, chatId);
+      return;
+    }
+
+    if (action === "skip_photo") {
+      const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+      if (session.state !== TelegramSessionState.NEWS_UPLOAD_MEDIA) return;
+
+      await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+        state: TelegramSessionState.NEWS_WRITE_TEXT,
+        contextData: session.context,
+      });
+      await ctx.reply(MSG.newsWriteText);
+      return;
+    }
+
+    if (action.startsWith("animal:")) {
+      const animalId = action.slice("animal:".length);
+      await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+        state: TelegramSessionState.NEWS_UPLOAD_MEDIA,
+        contextData: {
+          postType: LifeStoryType.ANIMAL_STORY,
+          animalId,
+        },
+        shelterId: linked.shelter.id,
+      });
+      await proceedToNewsPhotoStep(ctx, chatId);
+    }
+  });
+
   bot.on("message:photo", async (ctx) => {
     const chatId = BigInt(ctx.chat!.id);
     const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
 
     if (session.state === TelegramSessionState.NEW_ANIMAL_PHOTO) {
       await handleNewAnimalPhoto(ctx);
+      return;
+    }
+
+    if (session.state === TelegramSessionState.NEWS_UPLOAD_MEDIA) {
+      await handleNewsPhoto(ctx);
     }
   });
 
@@ -261,6 +394,11 @@ export function registerVolunteerHandlers(bot: Bot) {
 
     if (session.state === TelegramSessionState.NEW_ANIMAL_NAME) {
       await handleNewAnimalName(ctx, text);
+      return;
+    }
+
+    if (session.state === TelegramSessionState.NEWS_WRITE_TEXT) {
+      await handleNewsText(ctx, text);
     }
   });
 }

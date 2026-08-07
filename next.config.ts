@@ -5,6 +5,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "prisma"],
+  experimental: {
+    serverActions: {
+      // News/animal forms upload photos via Server Actions (max 5 MB per file in storage).
+      bodySizeLimit: "15mb",
+    },
+  },
   async redirects() {
     return [
       {

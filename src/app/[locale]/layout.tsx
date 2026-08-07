@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { geistMono, geistSans } from "@/lib/fonts";
 import { getAppSession } from "@/lib/auth/session";
 import { getActiveSponsorships, resolveCuratorHomeHref } from "@/lib/auth/curator";
 import { SiteFooter } from "@/components/site-footer";
@@ -62,22 +61,16 @@ export default async function LocaleLayout({
       : null;
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}
-      >
-        <NextIntlClientProvider messages={messages}>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader
-              isLoggedIn={!!session}
-              curatorHref={curatorHref}
-              staffCrmHref={staffCrmHref}
-            />
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
-          </div>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages}>
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader
+          isLoggedIn={!!session}
+          curatorHref={curatorHref}
+          staffCrmHref={staffCrmHref}
+        />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
+      </div>
+    </NextIntlClientProvider>
   );
 }

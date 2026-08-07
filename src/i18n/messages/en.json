@@ -33,9 +33,10 @@
   },
   "shelterLife": {
     "title": "Shelter life",
-    "subtitle": "Small stories about our residents — shared by volunteers with guardians and friends of the cats.",
-    "empty": "It's quiet for now — the first stories from our cats will appear here soon.",
-    "fromVolunteer": "from {name}"
+    "subtitle": "Stories about our cats and shelter news — fundraisers, reports, thank-yous, and more from volunteers.",
+    "empty": "It's quiet for now — the first posts will appear here soon.",
+    "fromVolunteer": "from {name}",
+    "shelterNewsBadge": "Shelter news"
   },
   "auth": {
     "signIn": "Sign in",

@@ -88,6 +88,71 @@ async function uploadAnimalPhotoBufferInternal({
   return media;
 }
 
+export async function uploadPostPhotoBuffer({
+  shelterId,
+  lifeStoryId,
+  animalId,
+  buffer,
+  mimeType,
+  isPublic = true,
+}: {
+  shelterId: string;
+  lifeStoryId: string;
+  animalId?: string | null;
+  buffer: Buffer;
+  mimeType: string;
+  isPublic?: boolean;
+}) {
+  if (!buffer.length) {
+    throw new Error("File is empty");
+  }
+
+  if (!mimeType.startsWith("image/")) {
+    throw new Error("Only images are allowed");
+  }
+
+  if (buffer.length > 5 * 1024 * 1024) {
+    throw new Error("Max file size is 5 MB");
+  }
+
+  const supabase = createAdminClient();
+  const ext = extensionFromMime(mimeType);
+  const storagePath = `${shelterId}/posts/${lifeStoryId}/${randomUUID()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(ANIMAL_MEDIA_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: mimeType,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(
+      uploadError.message.includes("Bucket not found")
+        ? `Create Supabase Storage bucket "${ANIMAL_MEDIA_BUCKET}" (public)`
+        : uploadError.message,
+    );
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(ANIMAL_MEDIA_BUCKET)
+    .getPublicUrl(storagePath);
+
+  return prisma.media.create({
+    data: {
+      animalId: animalId ?? null,
+      lifeStoryId,
+      type: MediaType.PHOTO,
+      storagePath,
+      publicUrl: urlData.publicUrl,
+      mimeType,
+      fileSize: buffer.length,
+      isPublic,
+      isCover: false,
+    },
+  });
+}
+
 export async function uploadAnimalPhoto({
   shelterId,
   animalId,

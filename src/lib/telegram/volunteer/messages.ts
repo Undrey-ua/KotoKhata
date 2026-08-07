@@ -29,11 +29,19 @@ export const MSG = {
 
   uploadFailed: "Не вдалось завантажити фото. Спробуйте ще раз.",
   cancelled: "Скасовано. Ось головне меню 👇",
-  help: "Команди:\n/start — головне меню\n/newcat — новий котик\n/cancel — скасувати\n/link КОД — прив'язати акаунт",
+  help: "Команди:\n/start — головне меню\n/newcat — новий котик\n/news — нова публікація\n/cancel — скасувати\n/link КОД — прив'язати акаунт",
 
   myCatsEmpty: "Поки немає котиків у притулку.",
   myCatsHeader: "🐈 Останні котики:",
-  newsSoon: "📰 Новини — скоро! Поки що додавайте через CRM.",
+
+  newsSelectTarget: "Про що публікація?",
+  newsSelectAnimal: "Оберіть котика або кнопку «Про притулок»:",
+  newsUploadPhoto: "Надішліть фото 📷 або натисніть «Пропустити»",
+  newsWriteText: "Напишіть текст публікації:",
+  newsPublished: "✅ Опубліковано на сайті!",
+  newsInvalidText: "Текст має містити від 1 до 4000 символів.",
+  newsFailed: "Не вдалося опублікувати. Спробуйте через CRM.",
+
   settingsSoon: "⚙️ Налаштування — скоро!",
 } as const;
 
@@ -61,4 +69,20 @@ export function linkInstructionsKeyboard() {
     return undefined;
   }
   return new InlineKeyboard().url("Увійти на сайт", loginUrl);
+}
+
+export function newsAnimalKeyboard(
+  animals: Array<{ id: string; name: string }>,
+) {
+  const keyboard = new InlineKeyboard().text("🏠 Про притулок", "news:shelter");
+
+  for (const animal of animals.slice(0, 8)) {
+    keyboard.row().text(animal.name, `news:animal:${animal.id}`);
+  }
+
+  return keyboard;
+}
+
+export function newsSkipPhotoKeyboard() {
+  return new InlineKeyboard().text("Пропустити фото", "news:skip_photo");
 }

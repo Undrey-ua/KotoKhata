@@ -118,7 +118,7 @@ export default async function CatProfilePage({
         orderBy: [{ isCover: "desc" }, { createdAt: "desc" }],
       },
       lifeStories: {
-        where: { isPublic: true },
+        where: { isPublic: true, type: "ANIMAL_STORY" },
         orderBy: { publishedAt: "desc" },
         take: 5,
       },
@@ -140,7 +140,7 @@ export default async function CatProfilePage({
     close: tp("closeGallery"),
     prev: tp("prevPhoto"),
     next: tp("nextPhoto"),
-    photoCounter: tp("photoCounter"),
+    photoCounter: tp.raw("photoCounter") as string,
     openGallery: tp("openGallery"),
   };
 

@@ -142,6 +142,11 @@ enum TelegramSessionState {
   LINK_ACCOUNT
 }
 
+enum LifeStoryType {
+  ANIMAL_STORY
+  SHELTER_NEWS
+}
+
 // ─── Core Tenant ─────────────────────────────────────────────────────────────
 
 model Shelter {
@@ -173,6 +178,7 @@ model Shelter {
 
   members      ShelterMember[]
   animals      Animal[]
+  lifeStories  LifeStory[]
   donations    Donation[]
   applications AdoptionApplication[]
   curatorNotes CuratorNote[]
@@ -319,30 +325,35 @@ model AnimalStatusHistory {
 // ─── Life Stories & Media ──────────────────────────────────────────────────────
 
 model LifeStory {
-  id       String @id @default(uuid())
-  animalId String @map("animal_id")
-  authorId String @map("author_id")
+  id        String         @id @default(uuid())
+  shelterId String         @map("shelter_id")
+  animalId  String?        @map("animal_id")
+  authorId  String         @map("author_id")
+  type      LifeStoryType  @default(ANIMAL_STORY)
 
+  title     String?
   content   String
   mood      AnimalMood?
-  isPublic  Boolean  @default(false) @map("is_public")
-  publishedAt DateTime? @map("published_at")
+  isPublic  Boolean        @default(false) @map("is_public")
+  publishedAt DateTime?    @map("published_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  animal  Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
-  author  User      @relation("LifeStoryAuthor", fields: [authorId], references: [id])
+  shelter Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  animal  Animal? @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  author  User    @relation("LifeStoryAuthor", fields: [authorId], references: [id])
   media   Media[]
   aiDraft AiDraft?
 
+  @@index([shelterId, publishedAt(sort: Desc)])
   @@index([animalId, publishedAt(sort: Desc)])
   @@map("life_stories")
 }
 
 model Media {
   id          String    @id @default(uuid())
-  animalId    String    @map("animal_id")
+  animalId    String?   @map("animal_id")
   lifeStoryId String?   @map("life_story_id")
 
   type        MediaType
@@ -361,10 +372,11 @@ model Media {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  animal    Animal     @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  animal    Animal?    @relation(fields: [animalId], references: [id], onDelete: Cascade)
   lifeStory LifeStory? @relation(fields: [lifeStoryId], references: [id], onDelete: SetNull)
 
   @@index([animalId, type])
+  @@index([lifeStoryId])
   @@map("media")
 }
 

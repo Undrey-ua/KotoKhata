@@ -1,9 +1,9 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
-import { SafeImage } from "@/components/shared/safe-image";
+import { LifeFeedPhotos } from "@/components/shelter/life-feed-photos";
 import { prisma } from "@/lib/db/prisma";
-import { getPublicShelterLifeStories } from "@/lib/shelter-life-stories";
+import { getPublicShelterFeed } from "@/lib/shelter-life-stories";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 60;
@@ -50,10 +50,19 @@ export default async function ShelterLifePage({
     notFound();
   }
 
-  const [t, stories] = await Promise.all([
+  const [t, tp, items] = await Promise.all([
     getTranslations("shelterLife"),
-    getPublicShelterLifeStories(shelterSlug),
+    getTranslations("animalProfile"),
+    getPublicShelterFeed(shelterSlug),
   ]);
+
+  const lightboxLabels = {
+    close: tp("closeGallery"),
+    prev: tp("prevPhoto"),
+    next: tp("nextPhoto"),
+    photoCounter: tp.raw("photoCounter") as string,
+    openGallery: tp("openGallery"),
+  };
 
   const dateLocale = locale === "uk" ? "uk-UA" : "en-GB";
 
@@ -73,27 +82,43 @@ export default async function ShelterLifePage({
           <p className="mt-3 text-muted-foreground">{t("subtitle")}</p>
         </header>
 
-        {stories.length === 0 ? (
+        {items.length === 0 ? (
           <p className="mt-10 rounded-2xl border border-dashed border-border-cool bg-card/80 p-12 text-center text-muted-foreground">
             {t("empty")}
           </p>
         ) : (
           <ol className="mt-10 space-y-5">
-            {stories.map((story) => {
-              const date = story.publishedAt ?? story.createdAt;
+            {items.map((item) => {
+              const date = item.publishedAt ?? item.createdAt;
+              const isShelterNews = item.type === "SHELTER_NEWS";
 
               return (
                 <li
-                  key={story.id}
+                  key={item.id}
                   className="rounded-2xl border border-border-cool bg-card p-5 shadow-sm"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Link
-                      href={`/s/${shelterSlug}/cats/${story.animal.slug}`}
-                      className="font-semibold text-foreground hover:text-primary"
-                    >
-                      {story.animal.name}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isShelterNews ? (
+                        <>
+                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                            {t("shelterNewsBadge")}
+                          </span>
+                          {item.title && (
+                            <span className="font-semibold text-foreground">
+                              {item.title}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <Link
+                          href={`/s/${shelterSlug}/cats/${item.animal.slug}`}
+                          className="font-semibold text-foreground hover:text-primary"
+                        >
+                          {item.animal.name}
+                        </Link>
+                      )}
+                    </div>
                     <time className="text-xs text-muted-foreground">
                       {date.toLocaleDateString(dateLocale, {
                         day: "numeric",
@@ -103,28 +128,23 @@ export default async function ShelterLifePage({
                     </time>
                   </div>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                    {story.content}
+                    {item.content}
                   </p>
-                  {story.authorName && (
+                  {item.authorName && (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {t("fromVolunteer", { name: story.authorName })}
+                      {t("fromVolunteer", { name: item.authorName })}
                     </p>
                   )}
-                  {story.photoUrls.length > 0 && (
-                    <ul className="mt-4 flex flex-wrap gap-2">
-                      {story.photoUrls.map((url) => (
-                        <li
-                          key={url}
-                          className="h-24 w-24 overflow-hidden rounded-lg border border-border-cool"
-                        >
-                          <SafeImage
-                            src={url}
-                            alt=""
-                            className="h-full w-full bg-surface-stone object-cover"
-                          />
-                        </li>
-                      ))}
-                    </ul>
+                  {item.photoUrls.length > 0 && (
+                    <LifeFeedPhotos
+                      photoUrls={item.photoUrls}
+                      altLabel={
+                        isShelterNews
+                          ? item.title ?? t("shelterNewsBadge")
+                          : item.animal.name
+                      }
+                      labels={lightboxLabels}
+                    />
                   )}
                 </li>
               );
