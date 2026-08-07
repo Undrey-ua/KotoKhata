@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { LifeStoryType } from "@prisma/client";
+import { getLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { requireShelterMember } from "@/lib/auth/session";
 import {
@@ -20,11 +21,13 @@ function revalidateNewsPaths(paths: string[]) {
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTOS = 5;
 
+type NewsFormState = { error?: string } | null;
+
 export async function createNewsAction(
   shelterSlug: string,
-  _prevState: { error?: string } | null,
+  _prevState: NewsFormState,
   formData: FormData,
-) {
+): Promise<NewsFormState> {
   const ctx = await requireShelterMember(shelterSlug);
 
   try {
@@ -72,7 +75,9 @@ export async function createNewsAction(
     });
 
     revalidateNewsPaths(revalidate.paths);
-    redirect(`/crm/${shelterSlug}/news`);
+    const locale = await getLocale();
+    redirect({ href: `/crm/${shelterSlug}/news`, locale });
+    return null;
   } catch (error) {
     if (isRedirectError(error)) throw error;
     return {

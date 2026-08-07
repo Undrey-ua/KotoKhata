@@ -18,10 +18,14 @@ type NewsFormProps = {
 };
 
 export function NewsForm({ shelterSlug, animals }: NewsFormProps) {
-  const [state, action, pending] = useActionState(
-    createNewsAction.bind(null, shelterSlug),
-    null,
-  );
+  async function saveAction(
+    prevState: FormState,
+    formData: FormData,
+  ): Promise<FormState> {
+    return createNewsAction(shelterSlug, prevState, formData);
+  }
+
+  const [state, action, pending] = useActionState(saveAction, null);
 
   return (
     <form action={action} className="mx-auto max-w-2xl space-y-6">
