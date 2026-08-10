@@ -41,22 +41,22 @@ export const MSG = {
   accessReviewDone: "Запит опрацьовано.",
   accessNotAdmin: "Лише адміністратор може схваляти запити.",
 
-  newAnimalPhoto: "Надішліть фото нового kotika 📷",
+  newAnimalPhoto: "Надішліть фото нового котика 📷",
   newAnimalName: "Як його/її звати?",
   newAnimalDone: (name: string) =>
     `✅ *${name}* доданий!\nКартку можна доповнити в CRM.`,
-  newAnimalInvalidPhoto: "Будь ласка, надішліть *фото* kotika 📷",
+  newAnimalInvalidPhoto: "Будь ласка, надішліть *фото* котика 📷",
   newAnimalInvalidName: "Ім'я має містити від 1 до 50 символів.",
 
   uploadFailed: "Не вдалось завантажити фото. Спробуйте ще раз.",
   cancelled: "Скасовано. Ось головне меню 👇",
-  help: "Команди:\n/start — головне меню\n/newcat — новий kotik\n/news — нова публікація\n/cancel — скасувати\n/link КОД — прив'язати існуючий акаунт",
+  help: "Команди:\n/start — головне меню\n/newcat — новий котик\n/news — нова публікація\n/cancel — скасувати\n/link КОД — прив'язати існуючий акаунт",
 
-  myCatsEmpty: "Поки немає kotikів у притулку.",
-  myCatsHeader: "🐈 Останні kotiki:",
+  myCatsEmpty: "Поки немає котиків у притулку.",
+  myCatsHeader: "🐈 Останні котики:",
 
   newsSelectTarget: "Про що публікація?",
-  newsSelectAnimal: "Оберіть kotika або кнопку «Про притулок»:",
+  newsSelectAnimal: "Оберіть котика або кнопку «Про притулок»:",
   newsUploadPhoto: "Надішліть фото 📷 або натисніть «Пропустити»",
   newsWriteText: "Напишіть текст публікації:",
   newsPublished: "✅ Опубліковано на сайті!",
@@ -68,20 +68,20 @@ export const MSG = {
 
 export function mainMenuKeyboard() {
   return new InlineKeyboard()
-    .text("➕ Новий kotik", "menu:newcat")
+    .text("➕ Новий котик", "menu:newcat")
     .row()
-    .text("➕ Новina", "menu:news")
+    .text("➕ Новина", "menu:news")
     .row()
-    .text("🐈 Мої kotiki", "menu:cats")
+    .text("🐈 Мої котики", "menu:cats")
     .row()
     .text("⚙️ Налаштування", "menu:settings");
 }
 
 export function afterAnimalKeyboard() {
   return new InlineKeyboard()
-    .text("➕ Новina", "menu:news")
+    .text("➕ Новина", "menu:news")
     .row()
-    .text("➕ Ще kotik", "menu:newcat");
+    .text("➕ Ще котик", "menu:newcat");
 }
 
 export function unlinkedUserKeyboard() {
