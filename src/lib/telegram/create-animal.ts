@@ -21,6 +21,23 @@ async function uniqueAnimalSlug(shelterId: string, name: string) {
   return candidate;
 }
 
+export async function findLivingShelterAnimalByName(
+  shelterId: string,
+  name: string,
+) {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  return prisma.animal.findFirst({
+    where: {
+      shelterId,
+      status: { not: AnimalStatus.ADOPTED },
+      name: { equals: trimmed, mode: "insensitive" },
+    },
+    select: { id: true, name: true },
+  });
+}
+
 export async function createAnimalFromTelegram({
   shelterId,
   name,

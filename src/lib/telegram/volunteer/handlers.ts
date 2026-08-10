@@ -9,6 +9,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 import {
   createAnimalFromTelegram,
+  findLivingShelterAnimalByName,
   listShelterAnimals,
 } from "@/lib/telegram/create-animal";
 import { publishNewsFromTelegram } from "@/lib/telegram/create-life-story";
@@ -213,6 +214,17 @@ async function handleNewAnimalName(ctx: Context, name: string) {
   const trimmed = name.trim();
   if (!trimmed || trimmed.length > 50) {
     await ctx.reply(MSG.newAnimalInvalidName);
+    return;
+  }
+
+  const existing = await findLivingShelterAnimalByName(
+    linked.shelter.id,
+    trimmed,
+  );
+  if (existing) {
+    await ctx.reply(MSG.newAnimalDuplicateName(existing.name), {
+      parse_mode: "Markdown",
+    });
     return;
   }
 

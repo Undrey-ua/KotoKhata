@@ -47,6 +47,8 @@ export const MSG = {
     `✅ *${name}* доданий!\nКартку можна доповнити в CRM.`,
   newAnimalInvalidPhoto: "Будь ласка, надішліть *фото* котика 📷",
   newAnimalInvalidName: "Ім'я має містити від 1 до 50 символів.",
+  newAnimalDuplicateName: (name: string) =>
+    `⚠️ Котик *${name}* уже є в базі.\n\nВведіть інше ім'я або /cancel для скасування.`,
 
   uploadFailed: "Не вдалось завантажити фото. Спробуйте ще раз.",
   cancelled: "Скасовано. Ось головне меню 👇",
