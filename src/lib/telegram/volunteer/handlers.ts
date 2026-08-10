@@ -18,6 +18,7 @@ import {
   redeemTelegramLinkCode,
 } from "@/lib/telegram/link";
 import {
+  claimTelegramSessionState,
   getTelegramSession,
   resetTelegramSession,
   updateTelegramSession,
@@ -205,7 +206,6 @@ async function handleNewAnimalPhoto(ctx: Context) {
 
 async function handleNewAnimalName(ctx: Context, name: string) {
   const chatId = BigInt(ctx.chat!.id);
-  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
   const linked = await requireVolunteer(ctx);
 
   if (!linked) return;
@@ -216,11 +216,14 @@ async function handleNewAnimalName(ctx: Context, name: string) {
     return;
   }
 
-  const photoFileId = session.context.photoFileId;
+  const claimed = await claimTelegramSessionState(
+    chatId,
+    TelegramBotType.VOLUNTEER,
+    TelegramSessionState.NEW_ANIMAL_NAME,
+  );
+
+  const photoFileId = claimed?.photoFileId;
   if (!photoFileId) {
-    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
-    await ctx.reply(MSG.uploadFailed);
-    await showMainMenu(ctx, linked.shelter.name);
     return;
   }
 
@@ -232,8 +235,6 @@ async function handleNewAnimalName(ctx: Context, name: string) {
       photoBuffer: buffer,
       photoMimeType: mimeType,
     });
-
-    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
 
     await ctx.reply(MSG.newAnimalDone(animal.name), {
       parse_mode: "Markdown",
@@ -350,7 +351,6 @@ async function handleNewsPhoto(ctx: Context) {
 
 async function handleNewsText(ctx: Context, text: string) {
   const chatId = BigInt(ctx.chat!.id);
-  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
   const linked = await requireVolunteer(ctx);
 
   if (!linked?.shelter) return;
@@ -361,7 +361,17 @@ async function handleNewsText(ctx: Context, text: string) {
     return;
   }
 
-  const postType = session.context.postType ?? LifeStoryType.ANIMAL_STORY;
+  const claimed = await claimTelegramSessionState(
+    chatId,
+    TelegramBotType.VOLUNTEER,
+    TelegramSessionState.NEWS_WRITE_TEXT,
+  );
+
+  if (!claimed) {
+    return;
+  }
+
+  const postType = claimed.postType ?? LifeStoryType.ANIMAL_STORY;
 
   try {
     await publishNewsFromTelegram({
@@ -369,14 +379,11 @@ async function handleNewsText(ctx: Context, text: string) {
       authorId: linked.user.id,
       type: postType,
       animalId:
-        postType === LifeStoryType.ANIMAL_STORY
-          ? session.context.animalId
-          : null,
+        postType === LifeStoryType.ANIMAL_STORY ? claimed.animalId : null,
       content: trimmed,
-      photoFileId: session.context.photoFileId,
+      photoFileId: claimed.photoFileId,
     });
 
-    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
     await ctx.reply(MSG.newsPublished, { reply_markup: mainMenuKeyboard() });
   } catch {
     await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
@@ -620,6 +627,8 @@ export function registerVolunteerHandlers(bot: Bot) {
   });
 
   bot.on("message:text", async (ctx) => {
+    if (ctx.message.photo) return;
+
     const text = ctx.message.text.trim();
     if (text.startsWith("/")) return;
 

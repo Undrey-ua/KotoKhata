@@ -95,3 +95,43 @@ export async function resetTelegramSession(
     contextData: {},
   });
 }
+
+/** Atomically leave `fromState` and return its context (for idempotent FSM completion). */
+export async function claimTelegramSessionState(
+  chatId: bigint,
+  botType: TelegramBotType,
+  fromState: TelegramSessionState,
+): Promise<VolunteerSessionContext | null> {
+  const session = await prisma.telegramSession.findUnique({
+    where: { chatId_botType: { chatId, botType } },
+  });
+
+  if (!session || session.expiresAt < new Date()) {
+    return null;
+  }
+
+  if (session.state !== fromState) {
+    return null;
+  }
+
+  const context = parseContext(session.contextData);
+
+  const result = await prisma.telegramSession.updateMany({
+    where: {
+      chatId,
+      botType,
+      state: fromState,
+    },
+    data: {
+      state: TelegramSessionState.IDLE,
+      contextData: {},
+      expiresAt: sessionExpiry(),
+    },
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return context;
+}
