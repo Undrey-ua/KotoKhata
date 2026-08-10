@@ -140,6 +140,14 @@ enum TelegramSessionState {
   NEWS_AI_REVIEW
   NEWS_EDIT_TEXT
   LINK_ACCOUNT
+  REQUEST_ACCESS_NAME
+  REQUEST_ACCESS_EMAIL
+}
+
+enum VolunteerAccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum LifeStoryType {
@@ -183,6 +191,7 @@ model Shelter {
   applications AdoptionApplication[]
   curatorNotes CuratorNote[]
   volunteerInvites VolunteerInvite[]
+  volunteerAccessRequests VolunteerAccessRequest[]
 
   @@map("shelters")
 }
@@ -213,6 +222,7 @@ model User {
   curatorNotesAbout  CuratorNote[]         @relation("CuratorNotesAbout")
   curatorNotesAuthored CuratorNote[]       @relation("CuratorNotesBy")
   volunteerInvitesSent VolunteerInvite[]   @relation("VolunteerInvitedBy")
+  volunteerAccessReviews VolunteerAccessRequest[] @relation("VolunteerAccessReviewedBy")
 
   @@map("users")
 }
@@ -250,6 +260,27 @@ model VolunteerInvite {
   @@unique([shelterId, email])
   @@index([email])
   @@map("volunteer_invites")
+}
+
+model VolunteerAccessRequest {
+  id               String                        @id @default(uuid())
+  shelterId        String                        @map("shelter_id")
+  telegramChatId   BigInt                        @map("telegram_chat_id")
+  telegramUsername String?                       @map("telegram_username")
+  fullName         String                        @map("full_name")
+  email            String?
+  message          String?
+  status           VolunteerAccessRequestStatus  @default(PENDING)
+  reviewedById     String?                       @map("reviewed_by_id")
+  reviewedAt       DateTime?                     @map("reviewed_at")
+  createdAt        DateTime                      @default(now()) @map("created_at")
+
+  shelter    Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation("VolunteerAccessReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([shelterId, status])
+  @@index([telegramChatId])
+  @@map("volunteer_access_requests")
 }
 
 // ─── Animals ─────────────────────────────────────────────────────────────────

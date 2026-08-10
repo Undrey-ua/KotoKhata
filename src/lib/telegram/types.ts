@@ -7,6 +7,8 @@ export interface VolunteerSessionContext {
   postType?: LifeStoryType;
   draftText?: string;
   title?: string;
+  fullName?: string;
+  email?: string | null;
 }
 
 export type SessionUpdate = {

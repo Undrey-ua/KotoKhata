@@ -1,6 +1,12 @@
 import { Bot, Context } from "grammy";
-import { LifeStoryType, TelegramBotType, TelegramSessionState } from "@prisma/client";
-import { getAppUrl } from "@/lib/env";
+import {
+  LifeStoryType,
+  ShelterMemberRole,
+  TelegramBotType,
+  TelegramSessionState,
+  VolunteerAccessRequestStatus,
+} from "@prisma/client";
+import { prisma } from "@/lib/db/prisma";
 import {
   createAnimalFromTelegram,
   listShelterAnimals,
@@ -17,26 +23,53 @@ import {
   updateTelegramSession,
 } from "@/lib/telegram/session";
 import {
+  approveVolunteerAccessRequest,
+  createVolunteerAccessRequest,
+  getDefaultVolunteerShelter,
+  getPendingAccessRequest,
+  rejectVolunteerAccessRequest,
+} from "@/lib/telegram/volunteer-access";
+import {
+  notifyAdminsOfAccessRequest,
+  notifyVolunteerAccessApproved,
+  notifyVolunteerAccessRejected,
+} from "@/lib/telegram/notify-admins";
+import {
+  accessSkipEmailKeyboard,
   afterAnimalKeyboard,
-  linkInstructionsKeyboard,
   mainMenuKeyboard,
   newsAnimalKeyboard,
   newsSkipPhotoKeyboard,
   MSG,
+  unlinkedUserKeyboard,
 } from "@/lib/telegram/volunteer/messages";
 
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 async function showMainMenu(ctx: Context, shelterName?: string) {
-  const text = shelterName
-    ? MSG.welcomeLinked(shelterName)
-    : MSG.welcomeUnlinked(getAppUrl());
+  const chatId = BigInt(ctx.chat!.id);
 
-  const keyboard = shelterName
-    ? mainMenuKeyboard()
-    : linkInstructionsKeyboard();
+  if (shelterName) {
+    await ctx.reply(MSG.welcomeLinked(shelterName), {
+      parse_mode: "Markdown",
+      reply_markup: mainMenuKeyboard(),
+    });
+    return;
+  }
 
-  await ctx.reply(text, {
+  const pending = await getPendingAccessRequest(chatId);
+  if (pending) {
+    await ctx.reply(MSG.welcomePending(pending.shelter.name), {
+      parse_mode: "Markdown",
+    });
+    return;
+  }
+
+  await ctx.reply(MSG.welcomeUnlinked, {
     parse_mode: "Markdown",
-    ...(keyboard ? { reply_markup: keyboard } : {}),
+    reply_markup: unlinkedUserKeyboard(),
   });
 }
 
@@ -45,14 +78,94 @@ async function requireVolunteer(ctx: Context) {
   const linked = await getLinkedVolunteer(chatId);
 
   if (!linked?.shelter) {
-    const keyboard = linkInstructionsKeyboard();
-    await ctx.reply(MSG.needLink(getAppUrl()), {
-      ...(keyboard ? { reply_markup: keyboard } : {}),
+    const pending = await getPendingAccessRequest(chatId);
+    if (pending) {
+      await ctx.reply(MSG.welcomePending(pending.shelter.name), {
+        parse_mode: "Markdown",
+      });
+    } else {
+      await ctx.reply(MSG.needLink, {
+        reply_markup: unlinkedUserKeyboard(),
+      });
+    }
+    return null;
+  }
+
+  return linked;
+}
+
+async function requireShelterAdmin(ctx: Context, shelterId: string) {
+  const chatId = BigInt(ctx.chat!.id);
+  const linked = await getLinkedVolunteer(chatId);
+
+  if (
+    !linked?.membership ||
+    linked.membership.role !== ShelterMemberRole.ADMIN ||
+    linked.membership.shelterId !== shelterId
+  ) {
+    await ctx.answerCallbackQuery({
+      text: MSG.accessNotAdmin,
+      show_alert: true,
     });
     return null;
   }
 
   return linked;
+}
+
+async function submitAccessRequest(ctx: Context) {
+  const chatId = BigInt(ctx.chat!.id);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const fullName = session.context.fullName;
+  const shelterId = session.shelterId;
+
+  if (!fullName || !shelterId) {
+    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+    await showMainMenu(ctx);
+    return;
+  }
+
+  const email = session.context.email;
+
+  try {
+    const request = await createVolunteerAccessRequest({
+      shelterId,
+      chatId,
+      username: ctx.from?.username,
+      fullName,
+      email: email ?? null,
+    });
+
+    await notifyAdminsOfAccessRequest(shelterId, {
+      id: request.id,
+      fullName: request.fullName,
+      email: request.email,
+      telegramUsername: request.telegramUsername,
+      telegramChatId: request.telegramChatId,
+      shelterSlug: request.shelter.slug,
+    });
+
+    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+    await ctx.reply(MSG.accessSubmitted(request.shelter.name), {
+      parse_mode: "Markdown",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "ALREADY_MEMBER") {
+        await ctx.reply(MSG.accessAlreadyMember);
+        return;
+      }
+      if (error.message === "ALREADY_PENDING") {
+        await ctx.reply(MSG.accessAlreadyPending);
+        return;
+      }
+      if (error.message === "EMAIL_ALREADY_MEMBER") {
+        await ctx.reply(MSG.accessEmailTaken);
+        return;
+      }
+    }
+    await ctx.reply("Не вдалося надіслати запит. Спробуйте пізніше.");
+  }
 }
 
 async function startNewAnimalFlow(ctx: Context) {
@@ -301,6 +414,127 @@ export function registerVolunteerHandlers(bot: Bot) {
     await handleLinkCommand(ctx, code);
   });
 
+  bot.callbackQuery(/^access:request$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const chatId = BigInt(ctx.chat!.id);
+    const linked = await getLinkedVolunteer(chatId);
+
+    if (linked?.shelter) {
+      await ctx.reply(MSG.accessAlreadyMember);
+      return;
+    }
+
+    const pending = await getPendingAccessRequest(chatId);
+    if (pending) {
+      await ctx.reply(MSG.accessAlreadyPending);
+      return;
+    }
+
+    const shelter = await getDefaultVolunteerShelter();
+    if (!shelter) {
+      await ctx.reply("Притулок не налаштовано. Зверніться до адміністратора.");
+      return;
+    }
+
+    await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+      state: TelegramSessionState.REQUEST_ACCESS_NAME,
+      contextData: {},
+      shelterId: shelter.id,
+    });
+
+    await ctx.reply(MSG.accessAskName);
+  });
+
+  bot.callbackQuery(/^access:skip_email$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const chatId = BigInt(ctx.chat!.id);
+    const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+
+    if (session.state !== TelegramSessionState.REQUEST_ACCESS_EMAIL) return;
+
+    await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+      contextData: { ...session.context, email: null },
+    });
+
+    await submitAccessRequest(ctx);
+  });
+
+  bot.callbackQuery(/^access:(approve|reject):/, async (ctx) => {
+    const match = ctx.callbackQuery.data.match(/^access:(approve|reject):(.+)$/);
+    if (!match) return;
+
+    const [, action, requestId] = match;
+
+    const request = await prisma.volunteerAccessRequest.findUnique({
+      where: { id: requestId },
+      select: { id: true, shelterId: true, status: true },
+    });
+
+    if (!request) {
+      await ctx.answerCallbackQuery({ text: "Запит не знайдено", show_alert: true });
+      return;
+    }
+
+    const admin = await requireShelterAdmin(ctx, request.shelterId);
+    if (!admin) return;
+
+    await ctx.answerCallbackQuery();
+
+    if (request.status !== VolunteerAccessRequestStatus.PENDING) {
+      await ctx.reply(MSG.accessReviewDone);
+      return;
+    }
+
+    if (action === "approve") {
+      const result = await approveVolunteerAccessRequest(requestId, admin.user.id);
+
+      if (!result.ok) {
+        await ctx.reply(MSG.accessReviewDone);
+        return;
+      }
+
+      try {
+        await notifyVolunteerAccessApproved(result.chatId, result.shelterName);
+      } catch {
+        // best-effort
+      }
+
+      await updateTelegramSession(result.chatId, TelegramBotType.VOLUNTEER, {
+        state: TelegramSessionState.IDLE,
+        contextData: {},
+        shelterId: request.shelterId,
+      });
+
+      const originalText = ctx.callbackQuery.message?.text ?? "";
+      await ctx
+        .editMessageText(`${originalText}\n\n✅ Схвалено`, {
+          parse_mode: "Markdown",
+        })
+        .catch(() => {});
+      return;
+    }
+
+    const result = await rejectVolunteerAccessRequest(requestId, admin.user.id);
+
+    if (!result.ok) {
+      await ctx.reply(MSG.accessReviewDone);
+      return;
+    }
+
+    try {
+      await notifyVolunteerAccessRejected(result.chatId);
+    } catch {
+      // best-effort
+    }
+
+    const originalText = ctx.callbackQuery.message?.text ?? "";
+    await ctx
+      .editMessageText(`${originalText}\n\n❌ Відхилено`, {
+        parse_mode: "Markdown",
+      })
+      .catch(() => {});
+  });
+
   bot.callbackQuery(/^menu:/, async (ctx) => {
     await ctx.answerCallbackQuery();
     const action = ctx.callbackQuery.data.split(":")[1];
@@ -394,6 +628,41 @@ export function registerVolunteerHandlers(bot: Bot) {
 
     if (session.state === TelegramSessionState.NEW_ANIMAL_NAME) {
       await handleNewAnimalName(ctx, text);
+      return;
+    }
+
+    if (session.state === TelegramSessionState.REQUEST_ACCESS_NAME) {
+      const trimmed = text.trim();
+      if (trimmed.length < 2 || trimmed.length > 80) {
+        await ctx.reply(MSG.accessInvalidName);
+        return;
+      }
+
+      await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+        state: TelegramSessionState.REQUEST_ACCESS_EMAIL,
+        contextData: { fullName: trimmed },
+      });
+
+      await ctx.reply(MSG.accessAskEmail, {
+        reply_markup: accessSkipEmailKeyboard(),
+      });
+      return;
+    }
+
+    if (session.state === TelegramSessionState.REQUEST_ACCESS_EMAIL) {
+      const trimmed = text.trim();
+      if (!isValidEmail(trimmed)) {
+        await ctx.reply(MSG.accessInvalidEmail, {
+          reply_markup: accessSkipEmailKeyboard(),
+        });
+        return;
+      }
+
+      await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+        contextData: { ...session.context, email: trimmed },
+      });
+
+      await submitAccessRequest(ctx);
       return;
     }
 

@@ -65,20 +65,11 @@ export async function redeemTelegramLinkCode({
       where: { id: linkCode.id },
       data: { usedAt: new Date() },
     }),
-    prisma.telegramAccount.upsert({
-      where: {
-        chatId_botType: { chatId, botType },
-      },
-      create: {
-        userId: linkCode.userId,
-        chatId,
-        username: username ?? null,
-        botType,
-      },
-      update: {
-        userId: linkCode.userId,
-        username: username ?? null,
-      },
+    linkTelegramToUser({
+      chatId,
+      username,
+      userId: linkCode.userId,
+      botType,
     }),
   ]);
 
@@ -87,6 +78,34 @@ export async function redeemTelegramLinkCode({
     userId: linkCode.userId,
     shelter: membership?.shelter ?? null,
   };
+}
+
+export function linkTelegramToUser({
+  chatId,
+  username,
+  userId,
+  botType,
+}: {
+  chatId: bigint;
+  username?: string;
+  userId: string;
+  botType: TelegramBotType;
+}) {
+  return prisma.telegramAccount.upsert({
+    where: {
+      chatId_botType: { chatId, botType },
+    },
+    create: {
+      userId,
+      chatId,
+      username: username ?? null,
+      botType,
+    },
+    update: {
+      userId,
+      username: username ?? null,
+    },
+  });
 }
 
 export async function getLinkedVolunteer(chatId: bigint) {

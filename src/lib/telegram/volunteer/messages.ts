@@ -2,8 +2,11 @@ import { InlineKeyboard } from "grammy";
 import { getAppUrl, isPublicHttpsUrl } from "@/lib/env";
 
 export const MSG = {
-  welcomeUnlinked: (appUrl: string) =>
-    `🐾 *KotoXata — Панель волонтера*\n\nПрив'яжіть акаунт, щоб додавати котиків і публікувати новини.\n\n1️⃣ Увійдіть на сайт: ${appUrl}/uk/staff/login\n2️⃣ Отримайте код прив'язки в CRM\n3️⃣ Надішліть боту: \`/link КОД\``,
+  welcomeUnlinked:
+    "🐾 *KotoXata — Панель волонтера*\n\nНатисніть «Запит доступу», щоб адміністратор схвалив вас.\n\nЯкщо у вас уже є обліковий запис на сайті — використайте `/link КОД` з CRM.",
+
+  welcomePending: (shelterName: string) =>
+    `⏳ *Запит надіслано*\n\nОчікуйте схвалення адміністратором притулку *${shelterName}*.`,
 
   welcomeLinked: (shelterName: string) =>
     `🐾 *KotoXata — Панель волонтера*\nПритулок: *${shelterName}*`,
@@ -17,25 +20,43 @@ export const MSG = {
   linkNotMember:
     "❌ Ваш акаунт не має доступу до притулку. Зверніться до адміністратора.",
 
-  needLink: (appUrl: string) =>
-    `Спочатку прив'яжіть акаунт.\n\n${appUrl}/uk/staff/login`,
+  needLink:
+    "Спочатку запросіть доступ через /start або прив'яжіть акаунт командою /link КОД.",
 
-  newAnimalPhoto: "Надішліть фото нового котика 📷",
+  accessAskName: "Як вас звати? (ім'я та прізвище)",
+  accessInvalidName: "Ім'я має містити від 2 до 80 символів.",
+  accessAskEmail:
+    "Вкажіть email (необов'язково) — для входу в CRM на сайті.\n\nАбо натисніть «Пропустити».",
+  accessInvalidEmail: "Невірний формат email. Спробуйте ще раз або пропустіть.",
+  accessSubmitted: (shelterName: string) =>
+    `✅ *Запит надіслано!*\n\nАдміністратор *${shelterName}* отримає повідомлення. Очікуйте схвалення.`,
+  accessAlreadyPending:
+    "⏳ У вас уже є активний запит. Очікуйте рішення адміністратора.",
+  accessAlreadyMember: "✅ У вас уже є доступ. Надішліть /start.",
+  accessEmailTaken:
+    "Цей email уже використовується. Вкажіть інший або пропустіть.",
+  accessApproved: (shelterName: string) =>
+    `✅ *Доступ схвалено!*\n\nПритулок: *${shelterName}*`,
+  accessRejected: "❌ Запит відхилено.",
+  accessReviewDone: "Запит опрацьовано.",
+  accessNotAdmin: "Лише адміністратор може схваляти запити.",
+
+  newAnimalPhoto: "Надішліть фото нового kotika 📷",
   newAnimalName: "Як його/її звати?",
   newAnimalDone: (name: string) =>
     `✅ *${name}* доданий!\nКартку можна доповнити в CRM.`,
-  newAnimalInvalidPhoto: "Будь ласка, надішліть *фото* котика 📷",
+  newAnimalInvalidPhoto: "Будь ласка, надішліть *фото* kotika 📷",
   newAnimalInvalidName: "Ім'я має містити від 1 до 50 символів.",
 
   uploadFailed: "Не вдалось завантажити фото. Спробуйте ще раз.",
   cancelled: "Скасовано. Ось головне меню 👇",
-  help: "Команди:\n/start — головне меню\n/newcat — новий котик\n/news — нова публікація\n/cancel — скасувати\n/link КОД — прив'язати акаунт",
+  help: "Команди:\n/start — головне меню\n/newcat — новий kotik\n/news — нова публікація\n/cancel — скасувати\n/link КОД — прив'язати існуючий акаунт",
 
-  myCatsEmpty: "Поки немає котиків у притулку.",
-  myCatsHeader: "🐈 Останні котики:",
+  myCatsEmpty: "Поки немає kotikів у притулку.",
+  myCatsHeader: "🐈 Останні kotiki:",
 
   newsSelectTarget: "Про що публікація?",
-  newsSelectAnimal: "Оберіть котика або кнопку «Про притулок»:",
+  newsSelectAnimal: "Оберіть kotika або кнопку «Про притулок»:",
   newsUploadPhoto: "Надішліть фото 📷 або натисніть «Пропустити»",
   newsWriteText: "Напишіть текст публікації:",
   newsPublished: "✅ Опубліковано на сайті!",
@@ -47,20 +68,28 @@ export const MSG = {
 
 export function mainMenuKeyboard() {
   return new InlineKeyboard()
-    .text("➕ Новий котик", "menu:newcat")
+    .text("➕ Новий kotik", "menu:newcat")
     .row()
-    .text("➕ Новина", "menu:news")
+    .text("➕ Новina", "menu:news")
     .row()
-    .text("🐈 Мої котики", "menu:cats")
+    .text("🐈 Мої kotiki", "menu:cats")
     .row()
     .text("⚙️ Налаштування", "menu:settings");
 }
 
 export function afterAnimalKeyboard() {
   return new InlineKeyboard()
-    .text("➕ Новина", "menu:news")
+    .text("➕ Новina", "menu:news")
     .row()
-    .text("➕ Ще котик", "menu:newcat");
+    .text("➕ Ще kotik", "menu:newcat");
+}
+
+export function unlinkedUserKeyboard() {
+  return new InlineKeyboard().text("📝 Запит доступу", "access:request");
+}
+
+export function accessSkipEmailKeyboard() {
+  return new InlineKeyboard().text("Пропустити email", "access:skip_email");
 }
 
 export function linkInstructionsKeyboard() {
