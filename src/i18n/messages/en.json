@@ -262,6 +262,12 @@
       "done": "✅ Profile created!"
     }
   },
+  "pagination": {
+    "range": "{from}–{to} of {total}",
+    "previous": "← Previous",
+    "loadMore": "Load more",
+    "pageOf": "Page {page} of {totalPages}"
+  },
   "footer": {
     "rights": "All rights reserved",
     "madeWith": "Made with ❤️ for animals"

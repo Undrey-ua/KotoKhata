@@ -1,23 +1,35 @@
 import { setRequestLocale } from "next-intl/server";
 import { requireShelterMember } from "@/lib/auth/session";
-import { getCrmAnimalsList } from "@/lib/crm/animals-list";
+import {
+  countCrmAnimalsWithCurators,
+  getCrmAnimalsListPaginated,
+} from "@/lib/crm/animals-list";
+import { parsePageParam } from "@/lib/pagination";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { AnimalsListPanel } from "@/components/crm/animals-list-panel";
+import { ListPagination } from "@/components/ui/list-pagination";
 
 export const dynamic = "force-dynamic";
 
 export default async function CrmAnimalsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; shelterSlug: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const { locale, shelterSlug } = await params;
+  const resolvedSearchParams = await searchParams;
   setRequestLocale(locale);
   const ctx = await requireShelterMember(shelterSlug);
+  const page = parsePageParam(resolvedSearchParams.page);
+  const q = resolvedSearchParams.q?.trim();
 
-  const rows = await getCrmAnimalsList(ctx.shelterId);
-  const withCurators = rows.filter((r) => r.funding.hasCurators).length;
+  const [result, withCurators] = await Promise.all([
+    getCrmAnimalsListPaginated(ctx.shelterId, { page, q }),
+    countCrmAnimalsWithCurators(ctx.shelterId),
+  ]);
 
   return (
     <div>
@@ -25,7 +37,7 @@ export default async function CrmAnimalsPage({
         <div>
           <h1 className="text-2xl font-bold text-foreground">Котики</h1>
           <p className="text-sm text-muted-foreground">
-            {rows.length} записів
+            {result.total} записів
             {withCurators > 0 && ` · ${withCurators} під кураторством`}
           </p>
         </div>
@@ -34,7 +46,21 @@ export default async function CrmAnimalsPage({
         </Button>
       </div>
 
-      <AnimalsListPanel rows={rows} shelterSlug={shelterSlug} />
+      <AnimalsListPanel
+        rows={result.items}
+        shelterSlug={shelterSlug}
+        searchQuery={q}
+        totalCount={result.total}
+      />
+
+      <ListPagination
+        page={result.page}
+        totalPages={result.totalPages}
+        total={result.total}
+        pageSize={result.pageSize}
+        pathname={`/crm/${shelterSlug}/animals`}
+        searchParams={{ q }}
+      />
     </div>
   );
 }

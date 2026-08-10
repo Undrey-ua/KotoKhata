@@ -1,21 +1,21 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
 import type { CrmCuratorshipRow } from "@/lib/crm/curators-list";
-import {
-  countBySummaryBucket,
-  type CuratorListFilter,
-} from "@/lib/crm/curator-payment-status";
-import { filterCuratorshipRows } from "@/lib/crm/search";
 import { CuratorsTable } from "@/components/crm/curators-table";
-import { CrmSearchBar } from "@/components/crm/crm-search-bar";
+import { CrmSearchForm } from "@/components/crm/crm-search-form";
 import { cn } from "@/lib/utils";
 
 type CuratorsListPanelProps = {
   rows: CrmCuratorshipRow[];
   shelterSlug: string;
   locale?: string;
+  searchQuery?: string;
+  totalCount?: number;
+  summary: {
+    allGood: number;
+    needReminder: number;
+    needAttention: number;
+  };
 };
 
 function SummaryCard({
@@ -23,15 +23,11 @@ function SummaryCard({
   shortTitle,
   count,
   tone,
-  active,
-  onClick,
 }: {
   title: string;
   shortTitle?: string;
   count: number;
   tone: "good" | "warn" | "alert";
-  active?: boolean;
-  onClick?: () => void;
 }) {
   const toneClass = {
     good: "border-emerald-200 bg-emerald-50/60",
@@ -40,13 +36,10 @@ function SummaryCard({
   }[tone];
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={cn(
-        "rounded-xl border p-3 text-left transition-shadow hover:shadow-sm",
+        "rounded-xl border p-3 text-left",
         toneClass,
-        active && "ring-2 ring-primary/30",
       )}
     >
       <p className="text-2xl font-bold text-foreground">{count}</p>
@@ -54,69 +47,18 @@ function SummaryCard({
         <span className="sm:hidden">{shortTitle ?? title}</span>
         <span className="hidden sm:inline">{title}</span>
       </p>
-    </button>
+    </div>
   );
 }
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
-        active
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "bg-surface-cool/80 text-muted-foreground hover:bg-surface-stone hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-const FILTER_OPTIONS: { value: CuratorListFilter | ""; label: string }[] = [
-  { value: "", label: "Усі" },
-  { value: "all_active", label: "Активні куратори" },
-  { value: "paused", label: "На паузі" },
-  { value: "need_reminder", label: "Потрібно нагадати" },
-  { value: "need_contact", label: "Потрібен контакт" },
-  { value: "critical", label: "Без платежів 90+ днів" },
-];
 
 export function CuratorsListPanel({
   rows,
   shelterSlug,
   locale,
+  searchQuery = "",
+  totalCount,
+  summary,
 }: CuratorsListPanelProps) {
-  const [query, setQuery] = useState("");
-  const [listFilter, setListFilter] = useState<CuratorListFilter | "">("");
-
-  const summary = useMemo(
-    () =>
-      countBySummaryBucket(
-        rows.map((r) => ({ state: r.paymentState, curatorStatus: r.curatorStatus })),
-      ),
-    [rows],
-  );
-
-  const filtered = useMemo(
-    () => filterCuratorshipRows(rows, query, listFilter),
-    [rows, query, listFilter],
-  );
-
-  function applySummaryFilter(filter: CuratorListFilter) {
-    setListFilter((current) => (current === filter ? "" : filter));
-  }
-
   return (
     <>
       <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
@@ -125,56 +67,34 @@ export function CuratorsListPanel({
           shortTitle="Все добре"
           count={summary.allGood}
           tone="good"
-          active={listFilter === "all_active"}
-          onClick={() => setListFilter((f) => (f === "all_active" ? "" : "all_active"))}
         />
         <SummaryCard
           title="🟡 Потрібно нагадати (30–90 днів)"
           shortTitle="Нагадати"
           count={summary.needReminder}
           tone="warn"
-          active={listFilter === "need_reminder"}
-          onClick={() => applySummaryFilter("need_reminder")}
         />
         <SummaryCard
           title="🔴 Потрібна увага (90+ днів)"
           shortTitle="Увага"
           count={summary.needAttention}
           tone="alert"
-          active={listFilter === "need_contact"}
-          onClick={() => applySummaryFilter("need_contact")}
         />
       </div>
 
-      <CrmSearchBar
-        value={query}
-        onChange={setQuery}
+      <CrmSearchForm
+        defaultValue={searchQuery}
         placeholder="Ім'я, email, телефон або кіт…"
-        resultCount={filtered.length}
-        totalCount={rows.length}
+        totalCount={totalCount}
       />
 
-      <div className="-mx-1 mt-3 overflow-x-auto pb-1">
-        <div className="flex w-max gap-1.5 px-1 sm:w-auto sm:flex-wrap">
-          {FILTER_OPTIONS.map(({ value, label }) => (
-            <FilterChip
-              key={value || "all"}
-              active={listFilter === value}
-              onClick={() => setListFilter(value)}
-            >
-              {label}
-            </FilterChip>
-          ))}
-        </div>
-      </div>
-
       <CuratorsTable
-        rows={filtered}
+        rows={rows}
         shelterSlug={shelterSlug}
         locale={locale}
         emptyMessage={
-          query.trim() || listFilter
-            ? "Нікого не знайдено за обраними фільтрами."
+          searchQuery.trim()
+            ? "Нікого не знайдено за вашим запитом."
             : "Поки немає кураторів. Вони з'являться після оформлення кураторства на сайті."
         }
       />

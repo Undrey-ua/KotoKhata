@@ -1,5 +1,11 @@
 import { ShelterMemberRole, TelegramBotType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import {
+  buildPaginationMeta,
+  LIST_PAGE_SIZE,
+  toPaginatedResult,
+  type PaginatedResult,
+} from "@/lib/pagination";
 
 export type VolunteerListItem =
   | {
@@ -138,6 +144,66 @@ export async function getPublicContactVolunteers(shelterId: string) {
     role: member.role,
     bio: member.bio,
   }));
+}
+
+export async function getShelterVolunteersPaginated(
+  shelterId: string,
+  options: { page?: number; pageSize?: number } = {},
+): Promise<
+  PaginatedResult<Extract<VolunteerListItem, { kind: "member" }>> & {
+    pendingInvites: Extract<VolunteerListItem, { kind: "invite" }>[];
+  }
+> {
+  const page = options.page ?? 1;
+  const pageSize = options.pageSize ?? LIST_PAGE_SIZE;
+
+  const [memberCount, invites] = await Promise.all([
+    prisma.shelterMember.count({ where: { shelterId } }),
+    prisma.volunteerInvite.findMany({
+      where: { shelterId, acceptedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: LIST_PAGE_SIZE,
+    }),
+  ]);
+
+  const meta = buildPaginationMeta(memberCount, page, pageSize);
+
+  const members = await prisma.shelterMember.findMany({
+    where: { shelterId },
+    include: {
+      user: { select: { id: true, email: true, fullName: true } },
+    },
+    orderBy: { joinedAt: "asc" },
+    skip: meta.skip,
+    take: meta.take,
+  });
+
+  const memberEmails = new Set(members.map((m) => m.user.email.toLowerCase()));
+
+  const pendingInvites = invites
+    .filter((i) => !memberEmails.has(i.email.toLowerCase()))
+    .map((i) => ({
+      kind: "invite" as const,
+      id: i.id,
+      email: i.email,
+      role: i.role,
+      createdAt: i.createdAt,
+    }));
+
+  const memberItems = members.map((m) => ({
+    kind: "member" as const,
+    id: m.id,
+    userId: m.user.id,
+    email: m.user.email,
+    fullName: m.user.fullName,
+    role: m.role,
+    joinedAt: m.joinedAt,
+  }));
+
+  return {
+    ...toPaginatedResult(memberItems, meta.total, meta.page, pageSize),
+    pendingInvites,
+  };
 }
 
 export async function getShelterVolunteers(shelterId: string) {

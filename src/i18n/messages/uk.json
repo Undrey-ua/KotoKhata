@@ -262,6 +262,12 @@
       "done": "✅ Картку створено!"
     }
   },
+  "pagination": {
+    "range": "{from}–{to} з {total}",
+    "previous": "← Назад",
+    "loadMore": "Завантажити далі",
+    "pageOf": "Сторінка {page} з {totalPages}"
+  },
   "footer": {
     "rights": "Усі права захищені",
     "madeWith": "Зроблено з ❤️ для тварин"

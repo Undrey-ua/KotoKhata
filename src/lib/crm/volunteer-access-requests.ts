@@ -1,5 +1,6 @@
 import { VolunteerAccessRequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { LIST_PAGE_SIZE } from "@/lib/pagination";
 
 export type VolunteerAccessRequestItem = {
   id: string;
@@ -18,6 +19,7 @@ export async function getPendingVolunteerAccessRequests(
       status: VolunteerAccessRequestStatus.PENDING,
     },
     orderBy: { createdAt: "asc" },
+    take: LIST_PAGE_SIZE,
     select: {
       id: true,
       fullName: true,

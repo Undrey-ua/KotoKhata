@@ -5,7 +5,7 @@ import { slugify } from "@/lib/slug";
 import { uploadAnimalPhotoBuffer } from "@/lib/storage/media";
 
 async function uniqueAnimalSlug(shelterId: string, name: string) {
-  const base = slugify(name) || "kotyk";
+  const base = slugify(name) || "kit";
   let candidate = base;
   let suffix = 2;
 

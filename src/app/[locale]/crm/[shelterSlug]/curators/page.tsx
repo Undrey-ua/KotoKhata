@@ -1,25 +1,37 @@
 import { setRequestLocale } from "next-intl/server";
 import { requireShelterMember } from "@/lib/auth/session";
-import { getCrmCuratorshipsList } from "@/lib/crm/curators-list";
+import {
+  countCrmCuratorshipsByStatus,
+  getCrmCuratorshipsListPaginated,
+  getCuratorshipSummaryCounts,
+} from "@/lib/crm/curators-list";
+import { parsePageParam } from "@/lib/pagination";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { CuratorsListPanel } from "@/components/crm/curators-list-panel";
-import { CuratorRelationshipStatus } from "@prisma/client";
+import { ListPagination } from "@/components/ui/list-pagination";
 
 export const dynamic = "force-dynamic";
 
 export default async function CrmCuratorsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; shelterSlug: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const { locale, shelterSlug } = await params;
+  const resolvedSearchParams = await searchParams;
   setRequestLocale(locale);
   const ctx = await requireShelterMember(shelterSlug);
+  const page = parsePageParam(resolvedSearchParams.page);
+  const q = resolvedSearchParams.q?.trim();
 
-  const rows = await getCrmCuratorshipsList(ctx.shelterId);
-  const activeCount = rows.filter((r) => r.curatorStatus === CuratorRelationshipStatus.ACTIVE).length;
-  const pausedCount = rows.filter((r) => r.curatorStatus === CuratorRelationshipStatus.PAUSED).length;
+  const [result, statusCounts, summary] = await Promise.all([
+    getCrmCuratorshipsListPaginated(ctx.shelterId, { page, q }),
+    countCrmCuratorshipsByStatus(ctx.shelterId),
+    getCuratorshipSummaryCounts(ctx.shelterId),
+  ]);
 
   return (
     <div>
@@ -27,9 +39,9 @@ export default async function CrmCuratorsPage({
         <div>
           <h1 className="text-2xl font-bold text-foreground">Куратори</h1>
           <p className="text-sm text-muted-foreground">
-            {rows.length} кураторств
-            {activeCount > 0 && ` · ${activeCount} активних`}
-            {pausedCount > 0 && ` · ${pausedCount} на паузі`}
+            {statusCounts.total} кураторств
+            {statusCounts.activeCount > 0 && ` · ${statusCounts.activeCount} активних`}
+            {statusCounts.pausedCount > 0 && ` · ${statusCounts.pausedCount} на паузі`}
           </p>
         </div>
         <Button asChild>
@@ -37,7 +49,23 @@ export default async function CrmCuratorsPage({
         </Button>
       </div>
 
-      <CuratorsListPanel rows={rows} shelterSlug={shelterSlug} locale={locale} />
+      <CuratorsListPanel
+        rows={result.items}
+        shelterSlug={shelterSlug}
+        locale={locale}
+        searchQuery={q}
+        totalCount={result.total}
+        summary={summary}
+      />
+
+      <ListPagination
+        page={result.page}
+        totalPages={result.totalPages}
+        total={result.total}
+        pageSize={result.pageSize}
+        pathname={`/crm/${shelterSlug}/curators`}
+        searchParams={{ q }}
+      />
     </div>
   );
 }

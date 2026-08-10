@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { LifeFeedPhotos } from "@/components/shelter/life-feed-photos";
 import { prisma } from "@/lib/db/prisma";
-import { getPublicShelterFeed } from "@/lib/shelter-life-stories";
+import { getPublicShelterFeedPaginated } from "@/lib/shelter-life-stories";
+import { parsePageParam } from "@/lib/pagination";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { ListPagination } from "@/components/ui/list-pagination";
 
 export const revalidate = 60;
 
@@ -35,11 +37,15 @@ export async function generateMetadata({
 
 export default async function ShelterLifePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; shelterSlug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { locale, shelterSlug } = await params;
+  const resolvedSearchParams = await searchParams;
   setRequestLocale(locale);
+  const page = parsePageParam(resolvedSearchParams.page);
 
   const shelter = await prisma.shelter.findUnique({
     where: { slug: shelterSlug },
@@ -50,11 +56,13 @@ export default async function ShelterLifePage({
     notFound();
   }
 
-  const [t, tp, items] = await Promise.all([
+  const [t, tp, tPag, feed] = await Promise.all([
     getTranslations("shelterLife"),
     getTranslations("animalProfile"),
-    getPublicShelterFeed(shelterSlug),
+    getTranslations("pagination"),
+    getPublicShelterFeedPaginated(shelterSlug, { page }),
   ]);
+  const items = feed.items;
 
   const lightboxLabels = {
     close: tp("closeGallery"),
@@ -151,6 +159,20 @@ export default async function ShelterLifePage({
             })}
           </ol>
         )}
+
+        <ListPagination
+          page={feed.page}
+          totalPages={feed.totalPages}
+          total={feed.total}
+          pageSize={feed.pageSize}
+          pathname={`/s/${shelterSlug}/life`}
+          labels={{
+            range: tPag("range"),
+            previous: tPag("previous"),
+            loadMore: tPag("loadMore"),
+            pageOf: tPag("pageOf"),
+          }}
+        />
       </div>
     </div>
   );

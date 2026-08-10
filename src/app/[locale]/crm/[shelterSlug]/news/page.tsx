@@ -1,23 +1,34 @@
 import { setRequestLocale } from "next-intl/server";
 import { requireShelterMember } from "@/lib/auth/session";
-import { getCrmNewsList } from "@/lib/crm/news-list";
+import {
+  countCrmPublishedNews,
+  getCrmNewsListPaginated,
+} from "@/lib/crm/news-list";
+import { parsePageParam } from "@/lib/pagination";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { NewsListPanel } from "@/components/crm/news-list-panel";
+import { ListPagination } from "@/components/ui/list-pagination";
 
 export const dynamic = "force-dynamic";
 
 export default async function CrmNewsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; shelterSlug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { locale, shelterSlug } = await params;
+  const resolvedSearchParams = await searchParams;
   setRequestLocale(locale);
   const ctx = await requireShelterMember(shelterSlug);
+  const page = parsePageParam(resolvedSearchParams.page);
 
-  const rows = await getCrmNewsList(ctx.shelterId);
-  const published = rows.filter((row) => row.isPublic).length;
+  const [result, published] = await Promise.all([
+    getCrmNewsListPaginated(ctx.shelterId, { page }),
+    countCrmPublishedNews(ctx.shelterId),
+  ]);
 
   return (
     <div>
@@ -25,7 +36,7 @@ export default async function CrmNewsPage({
         <div>
           <h1 className="text-2xl font-bold text-foreground">Новини</h1>
           <p className="text-sm text-muted-foreground">
-            {rows.length} записів
+            {result.total} записів
             {published > 0 && ` · ${published} на сайті`}
           </p>
         </div>
@@ -43,7 +54,15 @@ export default async function CrmNewsPage({
         на сайті.
       </p>
 
-      <NewsListPanel rows={rows} shelterSlug={shelterSlug} />
+      <NewsListPanel rows={result.items} shelterSlug={shelterSlug} />
+
+      <ListPagination
+        page={result.page}
+        totalPages={result.totalPages}
+        total={result.total}
+        pageSize={result.pageSize}
+        pathname={`/crm/${shelterSlug}/news`}
+      />
     </div>
   );
 }

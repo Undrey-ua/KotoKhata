@@ -1,6 +1,12 @@
 import { PaymentStatus, SponsorshipStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { displayCuratorName } from "@/lib/crm/curator-labels";
+import {
+  buildPaginationMeta,
+  LIST_PAGE_SIZE,
+  toPaginatedResult,
+  type PaginatedResult,
+} from "@/lib/pagination";
 
 export type PendingCuratorshipItem = {
   kind: "curatorship";
@@ -136,6 +142,23 @@ export async function getPendingPayments(shelterId: string): Promise<PendingPaym
 
   return [...curatorships, ...donationItems, ...paymentItems].sort(
     (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  );
+}
+
+export async function getPendingPaymentsPaginated(
+  shelterId: string,
+  options: { page?: number; pageSize?: number } = {},
+): Promise<PaginatedResult<PendingPaymentItem>> {
+  const page = options.page ?? 1;
+  const pageSize = options.pageSize ?? LIST_PAGE_SIZE;
+  const all = await getPendingPayments(shelterId);
+  const meta = buildPaginationMeta(all.length, page, pageSize);
+
+  return toPaginatedResult(
+    all.slice(meta.skip, meta.skip + meta.take),
+    meta.total,
+    meta.page,
+    pageSize,
   );
 }
 

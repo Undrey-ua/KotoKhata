@@ -1,5 +1,11 @@
 import { LifeStoryType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import {
+  buildPaginationMeta,
+  LIST_PAGE_SIZE,
+  toPaginatedResult,
+  type PaginatedResult,
+} from "@/lib/pagination";
 
 export type PublicFeedItem =
   | {
@@ -23,24 +29,35 @@ export type PublicFeedItem =
       photoUrls: string[];
     };
 
-export async function getPublicShelterFeed(
+export async function getPublicShelterFeedPaginated(
   shelterSlug: string,
-  limit = 50,
-): Promise<PublicFeedItem[]> {
+  options: { page?: number; pageSize?: number } = {},
+): Promise<PaginatedResult<PublicFeedItem>> {
+  const page = options.page ?? 1;
+  const pageSize = options.pageSize ?? LIST_PAGE_SIZE;
+  const where = {
+    isPublic: true,
+    shelter: { slug: shelterSlug },
+    OR: [
+      { type: LifeStoryType.SHELTER_NEWS },
+      {
+        type: LifeStoryType.ANIMAL_STORY,
+        animal: { isPublic: true },
+      },
+    ],
+  };
+
+  const meta = buildPaginationMeta(
+    await prisma.lifeStory.count({ where }),
+    page,
+    pageSize,
+  );
+
   const stories = await prisma.lifeStory.findMany({
-    where: {
-      isPublic: true,
-      shelter: { slug: shelterSlug },
-      OR: [
-        { type: LifeStoryType.SHELTER_NEWS },
-        {
-          type: LifeStoryType.ANIMAL_STORY,
-          animal: { isPublic: true },
-        },
-      ],
-    },
+    where,
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: limit,
+    skip: meta.skip,
+    take: meta.take,
     include: {
       animal: { select: { id: true, name: true, slug: true } },
       author: { select: { fullName: true } },
@@ -82,7 +99,15 @@ export async function getPublicShelterFeed(
     }
   }
 
-  return items;
+  return toPaginatedResult(items, meta.total, meta.page, pageSize);
+}
+
+export async function getPublicShelterFeed(
+  shelterSlug: string,
+  limit = LIST_PAGE_SIZE,
+): Promise<PublicFeedItem[]> {
+  return (await getPublicShelterFeedPaginated(shelterSlug, { page: 1, pageSize: limit }))
+    .items;
 }
 
 /** @deprecated Use getPublicShelterFeed */
