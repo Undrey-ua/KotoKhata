@@ -47,6 +47,39 @@ export function toPaginatedResult<T>(
   return { items, ...meta };
 }
 
+export type PageNumberItem = number | "ellipsis";
+
+/** Page numbers for pagination UI, e.g. [1, 2, 3, "ellipsis", 8]. */
+export function buildVisiblePageNumbers(
+  page: number,
+  totalPages: number,
+): PageNumberItem[] {
+  if (totalPages <= 1) return [];
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages: PageNumberItem[] = [1];
+
+  if (page > 3) {
+    pages.push("ellipsis");
+  }
+
+  const start = Math.max(2, page - 1);
+  const end = Math.min(totalPages - 1, page + 1);
+
+  for (let current = start; current <= end; current += 1) {
+    pages.push(current);
+  }
+
+  if (page < totalPages - 2) {
+    pages.push("ellipsis");
+  }
+
+  pages.push(totalPages);
+  return pages;
+}
+
 export function buildPageHref(
   pathname: string,
   searchParams: Record<string, string | undefined>,

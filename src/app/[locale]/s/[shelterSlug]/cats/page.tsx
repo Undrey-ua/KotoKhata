@@ -3,17 +3,13 @@ import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { CatFilters } from "@/components/catalog/cat-filters";
-import { CatalogCatCard } from "@/components/catalog/catalog-cat-card";
+import { CatalogCatGrid } from "@/components/catalog/catalog-cat-grid";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ListPagination } from "@/components/ui/list-pagination";
 import {
   hasActiveFilters,
   parseCatalogFilters,
 } from "@/lib/catalog-filters";
-import { buildCatalogAnimalWhere } from "@/lib/catalog-query";
-import { isAdopted } from "@/lib/animal-labels";
-import { coverMediaUrl } from "@/lib/serialize";
-import { getAnimalsFunding } from "@/lib/animal-funding";
+import { getCatalogCatsPaginated } from "@/lib/catalog-animals";
 import { parsePageParam } from "@/lib/pagination";
 import { buildAbsoluteUrl, buildPageMetadata } from "@/lib/seo/metadata";
 
@@ -72,36 +68,9 @@ export default async function CatsCatalogPage({
   const filters = parseCatalogFilters(resolvedSearchParams);
   const filtered = hasActiveFilters(filters);
   const page = parsePageParam(resolvedSearchParams.page);
-  const where = buildCatalogAnimalWhere(shelter.id, filters);
-
-  const [total, animals] = await Promise.all([
-    prisma.animal.count({ where }),
-    prisma.animal.findMany({
-      where,
-      orderBy: { name: "asc" },
-      skip: (page - 1) * 10,
-      take: 10,
-      include: {
-        media: {
-          where: { type: "PHOTO", isPublic: true },
-          orderBy: [{ isCover: "desc" }, { createdAt: "desc" }],
-          take: 1,
-        },
-      },
-    }),
-  ]);
+  const catalog = await getCatalogCatsPaginated(shelter.id, filters, page);
 
   const tc = await getTranslations("catalog");
-  const tp = await getTranslations("pagination");
-  const fundingByAnimal = await getAnimalsFunding(animals);
-  const totalPages = Math.max(1, Math.ceil(total / 10));
-
-  const paginationParams = {
-    sex: filters.sex,
-    support: filters.support,
-    age: filters.age,
-    q: filters.q,
-  };
 
   return (
     <>
@@ -110,10 +79,10 @@ export default async function CatsCatalogPage({
           "@context": "https://schema.org",
           "@type": "ItemList",
           name: `${tc("title")} — ${shelter.name}`,
-          numberOfItems: total,
-          itemListElement: animals.map((animal, index) => ({
+          numberOfItems: catalog.total,
+          itemListElement: catalog.items.map((animal, index) => ({
             "@type": "ListItem",
-            position: (page - 1) * 10 + index + 1,
+            position: (catalog.page - 1) * catalog.pageSize + index + 1,
             url: buildAbsoluteUrl(
               locale,
               `/s/${shelterSlug}/cats/${animal.slug}`,
@@ -142,61 +111,22 @@ export default async function CatsCatalogPage({
             currentSupport={filters.support}
             currentAge={filters.age}
             currentQuery={filters.q}
-            resultCount={total}
+            resultCount={catalog.total}
           />
 
-          {total === 0 ? (
+          {catalog.total === 0 ? (
             <p className="mt-8 rounded-2xl border border-dashed border-border-cool bg-card/80 p-12 text-center text-muted-foreground">
               {filtered ? tc("noResults") : tc("empty")}
             </p>
           ) : (
-            <>
-              <ul className="mt-4 grid grid-cols-2 gap-2 min-[480px]:grid-cols-3 lg:grid-cols-4 lg:gap-4 sm:mt-6">
-                {animals.map((animal) => {
-                  const funding = fundingByAnimal.get(animal.id)!;
-                  const underCuratorship =
-                    funding.hasCurators &&
-                    funding.fundedPercent != null &&
-                    !isAdopted(animal.status);
-
-                  return (
-                    <li key={animal.id} className="h-full">
-                      <CatalogCatCard
-                        name={animal.name}
-                        slug={animal.slug}
-                        sex={animal.sex}
-                        status={animal.status}
-                        description={animal.description}
-                        coverUrl={coverMediaUrl(animal.media)}
-                        shelterSlug={shelterSlug}
-                        funding={funding}
-                        adoptedLabel={tc("adopted")}
-                        fundedShortLabel={
-                          underCuratorship
-                            ? tc("fundedShort", { percent: funding.fundedPercent! })
-                            : undefined
-                        }
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <ListPagination
-                page={page}
-                totalPages={totalPages}
-                total={total}
-                pageSize={10}
-                pathname={`/s/${shelterSlug}/cats`}
-                searchParams={paginationParams}
-                labels={{
-                  range: tp("range"),
-                  previous: tp("previous"),
-                  loadMore: tp("loadMore"),
-                  pageOf: tp("pageOf"),
-                }}
-              />
-            </>
+            <CatalogCatGrid
+              key={[catalog.page, filters.sex, filters.support, filters.age, filters.q]
+                .filter(Boolean)
+                .join("-")}
+              shelterSlug={shelterSlug}
+              initialData={catalog}
+              filters={filters}
+            />
           )}
         </div>
       </div>

@@ -1,6 +1,9 @@
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { buildPageHref } from "@/lib/pagination";
+import {
+  buildPageHref,
+  buildVisiblePageNumbers,
+} from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 type ListPaginationLabels = {
@@ -13,7 +16,7 @@ type ListPaginationLabels = {
 const defaultLabels: ListPaginationLabels = {
   range: "{from}–{to} з {total}",
   previous: "← Назад",
-  loadMore: "Завантажити далі",
+  loadMore: "Завантажити ще",
   pageOf: "Сторінка {page} з {totalPages}",
 };
 
@@ -54,11 +57,12 @@ export function ListPagination({
   const to = Math.min(page * pageSize, total);
   const prevHref = buildPageHref(pathname, searchParams, page - 1);
   const nextHref = buildPageHref(pathname, searchParams, page + 1);
+  const pageNumbers = buildVisiblePageNumbers(page, totalPages);
 
   return (
     <nav
       className={cn(
-        "mt-6 flex flex-col items-center gap-3 border-t border-border-cool pt-5 sm:flex-row sm:justify-between",
+        "mt-6 flex flex-col gap-4 border-t border-border-cool pt-5 lg:flex-row lg:items-center lg:justify-between",
         className,
       )}
       aria-label="Пагінація"
@@ -71,7 +75,37 @@ export function ListPagination({
         </span>
       </p>
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        {pageNumbers.map((pageNumber, index) =>
+          pageNumber === "ellipsis" ? (
+            <span
+              key={`ellipsis-${index}`}
+              className="px-2 text-sm text-muted-foreground"
+              aria-hidden
+            >
+              …
+            </span>
+          ) : (
+            <Button
+              key={pageNumber}
+              asChild
+              variant={pageNumber === page ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "min-w-9 px-3",
+                pageNumber === page && "pointer-events-none",
+              )}
+              aria-current={pageNumber === page ? "page" : undefined}
+            >
+              <Link href={buildPageHref(pathname, searchParams, pageNumber)}>
+                {pageNumber}
+              </Link>
+            </Button>
+          ),
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-end">
         {page > 1 ? (
           <Button asChild variant="outline" size="sm">
             <Link href={prevHref}>{labels.previous}</Link>

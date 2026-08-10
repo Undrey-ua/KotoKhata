@@ -265,7 +265,7 @@
   "pagination": {
     "range": "{from}–{to} з {total}",
     "previous": "← Назад",
-    "loadMore": "Завантажити далі",
+    "loadMore": "Завантажити ще",
     "pageOf": "Сторінка {page} з {totalPages}"
   },
   "footer": {
