@@ -1,5 +1,8 @@
-/** Max items per list page (CRM + public site). */
+/** Max items per list page (CRM). */
 export const LIST_PAGE_SIZE = 10;
+
+/** Public cat catalog grid (3×4 / 4×3). */
+export const CATALOG_PAGE_SIZE = 12;
 
 export type PaginatedResult<T> = {
   items: T[];

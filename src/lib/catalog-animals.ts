@@ -7,7 +7,7 @@ import {
 import { buildCatalogAnimalWhere } from "@/lib/catalog-query";
 import type { CatalogFilters } from "@/lib/catalog-filters";
 import {
-  LIST_PAGE_SIZE,
+  CATALOG_PAGE_SIZE,
   parsePageParam,
   toPaginatedResult,
   type PaginatedResult,
@@ -32,7 +32,7 @@ export async function getCatalogCatsPaginated(
 ): Promise<PaginatedResult<CatalogCatItem>> {
   const where = buildCatalogAnimalWhere(shelterId, filters);
   const requestedPage = parsePageParam(String(page));
-  const skip = (requestedPage - 1) * LIST_PAGE_SIZE;
+  const skip = (requestedPage - 1) * CATALOG_PAGE_SIZE;
 
   const [total, animals] = await Promise.all([
     prisma.animal.count({ where }),
@@ -40,7 +40,7 @@ export async function getCatalogCatsPaginated(
       where,
       orderBy: { name: "asc" },
       skip,
-      take: LIST_PAGE_SIZE,
+      take: CATALOG_PAGE_SIZE,
       include: {
         media: {
           where: { type: "PHOTO", isPublic: true },
@@ -63,5 +63,5 @@ export async function getCatalogCatsPaginated(
     funding: fundingByAnimal.get(animal.id)!,
   }));
 
-  return toPaginatedResult(items, total, requestedPage);
+  return toPaginatedResult(items, total, requestedPage, CATALOG_PAGE_SIZE);
 }
