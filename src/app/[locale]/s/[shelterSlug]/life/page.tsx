@@ -56,10 +56,9 @@ export default async function ShelterLifePage({
     notFound();
   }
 
-  const [t, tp, tPag, feed] = await Promise.all([
+  const [t, tp, feed] = await Promise.all([
     getTranslations("shelterLife"),
     getTranslations("animalProfile"),
-    getTranslations("pagination"),
     getPublicShelterFeedPaginated(shelterSlug, { page }),
   ]);
   const items = feed.items;
@@ -166,12 +165,6 @@ export default async function ShelterLifePage({
           total={feed.total}
           pageSize={feed.pageSize}
           pathname={`/s/${shelterSlug}/life`}
-          labels={{
-            range: tPag("range"),
-            previous: tPag("previous"),
-            loadMore: tPag("loadMore"),
-            pageOf: tPag("pageOf"),
-          }}
         />
       </div>
     </div>

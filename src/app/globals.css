@@ -76,6 +76,23 @@
     @apply border-border;
   }
 
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  label[for] {
+    cursor: pointer;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     background-image:

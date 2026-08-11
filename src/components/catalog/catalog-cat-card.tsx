@@ -40,7 +40,7 @@ export function CatalogCatCard({
   const adopted = isAdopted(status);
 
   return (
-    <Link href={`/s/${shelterSlug}/cats/${slug}`} className="block h-full">
+    <Link href={`/s/${shelterSlug}/cats/${slug}`} className="block h-full cursor-pointer">
       <article
         className={cn(
           "group flex h-full flex-col overflow-hidden rounded-xl border border-border-cool/70 bg-card",

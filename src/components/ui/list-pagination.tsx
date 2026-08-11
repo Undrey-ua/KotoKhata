@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -5,20 +8,6 @@ import {
   buildVisiblePageNumbers,
 } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
-
-type ListPaginationLabels = {
-  range: string;
-  previous: string;
-  loadMore: string;
-  pageOf: string;
-};
-
-const defaultLabels: ListPaginationLabels = {
-  range: "{from}–{to} з {total}",
-  previous: "← Назад",
-  loadMore: "Завантажити ще",
-  pageOf: "Сторінка {page} з {totalPages}",
-};
 
 type ListPaginationProps = {
   page: number;
@@ -28,17 +17,7 @@ type ListPaginationProps = {
   pathname: string;
   searchParams?: Record<string, string | undefined>;
   className?: string;
-  labels?: Partial<ListPaginationLabels>;
 };
-
-function formatLabel(
-  template: string,
-  values: Record<string, string | number>,
-) {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) =>
-    String(values[key] ?? ""),
-  );
-}
 
 export function ListPagination({
   page,
@@ -48,11 +27,11 @@ export function ListPagination({
   pathname,
   searchParams = {},
   className,
-  labels: labelOverrides,
 }: ListPaginationProps) {
+  const tp = useTranslations("pagination");
+
   if (totalPages <= 1) return null;
 
-  const labels = { ...defaultLabels, ...labelOverrides };
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
   const prevHref = buildPageHref(pathname, searchParams, page - 1);
@@ -68,10 +47,10 @@ export function ListPagination({
       aria-label="Пагінація"
     >
       <p className="text-sm text-muted-foreground">
-        {formatLabel(labels.range, { from, to, total })}
+        {tp("range", { from, to, total })}
         <span className="hidden sm:inline">
           {" · "}
-          {formatLabel(labels.pageOf, { page, totalPages })}
+          {tp("pageOf", { page, totalPages })}
         </span>
       </p>
 
@@ -108,13 +87,13 @@ export function ListPagination({
       <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-end">
         {page > 1 ? (
           <Button asChild variant="outline" size="sm">
-            <Link href={prevHref}>{labels.previous}</Link>
+            <Link href={prevHref}>{tp("previous")}</Link>
           </Button>
         ) : null}
 
         {page < totalPages ? (
           <Button asChild size="sm">
-            <Link href={nextHref}>{labels.loadMore}</Link>
+            <Link href={nextHref}>{tp("loadMore")}</Link>
           </Button>
         ) : null}
       </div>

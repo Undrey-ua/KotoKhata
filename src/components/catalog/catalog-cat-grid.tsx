@@ -21,15 +21,6 @@ type CatalogCatGridProps = {
   filters: CatalogFilters;
 };
 
-function formatLabel(
-  template: string,
-  values: Record<string, string | number>,
-) {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) =>
-    String(values[key] ?? ""),
-  );
-}
-
 function buildFilterParams(filters: CatalogFilters) {
   return {
     sex: filters.sex,
@@ -135,14 +126,14 @@ export function CatalogCatGrid({
           aria-label="Пагінація"
         >
           <p className="text-sm text-muted-foreground">
-            {formatLabel(tp("range"), {
+            {tp("range", {
               from: displayedFrom,
               to: displayedTo,
               total,
             })}
             <span className="hidden sm:inline">
               {" · "}
-              {formatLabel(tp("pageOf"), {
+              {tp("pageOf", {
                 page: initialData.page,
                 totalPages,
               })}
