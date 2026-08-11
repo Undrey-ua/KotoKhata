@@ -48,7 +48,7 @@ export const MSG = {
   newAnimalInvalidPhoto: "Будь ласка, надішліть *фото* котика 📷",
   newAnimalInvalidName: "Ім'я має містити від 1 до 50 символів.",
   newAnimalDuplicateName: (name: string) =>
-    `⚠️ Котик *${name}* уже є в базі.\n\nВведіть інше ім'я або /cancel для скасування.`,
+    `⚠️ Котик *${name}* уже є в базі.\n\nВведіть інше ім'я.`,
 
   uploadFailed: "Не вдалось завантажити фото. Спробуйте ще раз.",
   cancelled: "Скасовано. Ось головне меню 👇",
@@ -71,25 +71,71 @@ export const MSG = {
   newsInvalidText: "Текст має містити від 1 до 4000 символів.",
   newsFailed: "Не вдалося опублікувати. Спробуйте через CRM.",
 
+  curatorsMenu: "👤 *Куратори*",
+  curatorsEmpty: "Поки немає кураторів.",
+  curatorsListHeader: (total: number) => `📋 *Куратори* (${total})`,
+  curatorAddName: "Ім'я куратора (ПІБ):",
+  curatorAddEmail: "Email куратора:",
+  curatorAddPhone:
+    "Телефон куратора (необов'язково).\n\nАбо натисніть «Пропустити».",
+  curatorPickAnimal:
+    "Натисніть «Пошук котика», потім введіть *ім'я* або *slug* підопічного.",
+  curatorAddAmount: (animalName: string, minAmount?: number | null) =>
+    minAmount != null
+      ? `Сума кураторства для *${animalName}* (₴/міс, мін. ${minAmount}):`
+      : `Сума кураторства для *${animalName}* (₴/міс):`,
+  curatorInvalidName: "Ім'я має містити від 1 до 100 символів.",
+  curatorInvalidEmail: "Невірний формат email.",
+  curatorInvalidPhone: "Телефон занадто довгий (до 30 символів).",
+  curatorInvalidAmount: "Вкажіть додатну суму в гривнях.",
+  curatorAdded: (curatorName: string, animalName: string, amount: number) =>
+    `✅ Куратора *${curatorName}* додано до *${animalName}* (${amount} ₴/міс).`,
+  curatorAddFailed: "Не вдалося додати куратора. Спробуйте через CRM.",
+
+  catSearchPrompt: "Введіть *ім'я* або *slug* котика:",
+  catSearchEmpty: "Нічого не знайдено. Спробуйте інший запит.",
+  catSearchPick: "Оберіть котика з результатів:",
+  catSearchResult: (
+    name: string,
+    slug: string,
+    statusLabel: string,
+    hasCurator: boolean,
+  ) =>
+    `🐈 *${name}*\nslug: \`${slug}\`\nСтатус: ${statusLabel}\nКуратор: ${hasCurator ? "так ✅" : "ні"}`,
+
   settingsSoon: "⚙️ Налаштування — скоро!",
 } as const;
+
+export function navOnlyKeyboard() {
+  return new InlineKeyboard()
+    .text("◀️ Назад", "nav:back")
+    .text("🏠 Меню", "nav:home");
+}
 
 export function mainMenuKeyboard() {
   return new InlineKeyboard()
     .text("➕ Новий котик", "menu:newcat")
-    .row()
     .text("➕ Новина", "menu:news")
     .row()
-    .text("🐈 Мої котики", "menu:cats")
+    .text("🔍 Пошук котика", "menu:search")
+    .text("👤 Куратори", "menu:curators")
     .row()
+    .text("🐈 Мої котики", "menu:cats")
     .text("⚙️ Налаштування", "menu:settings");
+}
+
+export function curatorsMenuKeyboard() {
+  return new InlineKeyboard()
+    .text("➕ Додати куратора", "curator:add")
+    .text("📋 Список", "curator:list");
 }
 
 export function afterAnimalKeyboard() {
   return new InlineKeyboard()
     .text("➕ Новина", "menu:news")
+    .text("➕ Ще котик", "menu:newcat")
     .row()
-    .text("➕ Ще котик", "menu:newcat");
+    .text("🏠 Меню", "nav:home");
 }
 
 export function unlinkedUserKeyboard() {
@@ -97,7 +143,22 @@ export function unlinkedUserKeyboard() {
 }
 
 export function accessSkipEmailKeyboard() {
-  return new InlineKeyboard().text("Пропустити email", "access:skip_email");
+  return new InlineKeyboard()
+    .text("Пропустити email", "access:skip_email")
+    .row()
+    .text("◀️ Назад", "nav:back")
+    .text("🏠 Меню", "nav:home");
+}
+
+export function curatorSkipPhoneKeyboard() {
+  return new InlineKeyboard()
+    .text("Пропустити телефон", "curator:skip_phone")
+    .row()
+    .text("🔍 Пошук котика", "curator:search_animal");
+}
+
+export function curatorSearchAnimalKeyboard() {
+  return new InlineKeyboard().text("🔍 Пошук котика", "curator:search_animal");
 }
 
 export function linkInstructionsKeyboard() {
@@ -122,4 +183,28 @@ export function newsAnimalKeyboard(
 
 export function newsSkipPhotoKeyboard() {
   return new InlineKeyboard().text("Пропустити фото", "news:skip_photo");
+}
+
+export function animalPickKeyboard(
+  animals: Array<{ id: string; name: string }>,
+  prefix: "curator" | "search",
+) {
+  const keyboard = new InlineKeyboard();
+
+  for (const animal of animals) {
+    keyboard.row().text(animal.name, `${prefix}:pick:${animal.id}`);
+  }
+
+  return keyboard;
+}
+
+export function catProfileKeyboard(shelterSlug: string, animalSlug: string) {
+  const url = `${getAppUrl()}/uk/s/${shelterSlug}/cats/${animalSlug}`;
+  const keyboard = new InlineKeyboard();
+
+  if (isPublicHttpsUrl(url)) {
+    keyboard.url("Відкрити на сайті", url);
+  }
+
+  return keyboard;
 }
