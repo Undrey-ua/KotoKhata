@@ -57,8 +57,14 @@ export const MSG = {
   myCatsEmpty: "Поки немає котиків у притулку.",
   myCatsHeader: "🐈 Останні котики:",
 
-  newsSelectTarget: "Про що публікація?",
-  newsSelectAnimal: "Оберіть котика або кнопку «Про притулок»:",
+  newsSelectTarget:
+    "Про що публікація?\n\n🐈 *Котик з куратором* — новина для кураторів (з'явиться в профілі котика).\n🏠 *Про притулок* — новина для публічної стрічки на сайті.",
+  newsNoCuratedCats:
+    "Зараз немає котиків з активним куратором. Новину про котика можна додати пізніше.\n\nМожете опублікувати новину *про притулок* 👇",
+  newsAnimalNoCurator:
+    "У цього котика немає активного куратора. Оберіть іншого або «Про притулок».",
+  newsWriteTitle: "Напишіть *заголовок* новини про притулок (до 120 символів):",
+  newsInvalidTitle: "Заголовок має містити від 1 до 120 символів.",
   newsUploadPhoto: "Надішліть фото 📷 або натисніть «Пропустити»",
   newsWriteText: "Напишіть текст публікації:",
   newsPublished: "✅ Опубліковано на сайті!",
@@ -107,7 +113,7 @@ export function newsAnimalKeyboard(
 ) {
   const keyboard = new InlineKeyboard().text("🏠 Про притулок", "news:shelter");
 
-  for (const animal of animals.slice(0, 8)) {
+  for (const animal of animals) {
     keyboard.row().text(animal.name, `news:animal:${animal.id}`);
   }
 

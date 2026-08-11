@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "TelegramSessionState" ADD VALUE IF NOT EXISTS 'NEWS_WRITE_TITLE';

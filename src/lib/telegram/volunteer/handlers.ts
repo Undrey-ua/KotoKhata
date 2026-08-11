@@ -11,6 +11,8 @@ import {
   createAnimalFromTelegram,
   findLivingShelterAnimalByName,
   listShelterAnimals,
+  listShelterAnimalsWithCurators,
+  shelterAnimalHasActiveCurator,
 } from "@/lib/telegram/create-animal";
 import { publishNewsFromTelegram } from "@/lib/telegram/create-life-story";
 import { downloadTelegramPhoto } from "@/lib/telegram/download";
@@ -317,7 +319,7 @@ async function startNewsFlow(ctx: Context) {
   if (!linked) return;
 
   const chatId = BigInt(ctx.chat!.id);
-  const animals = await listShelterAnimals(linked.shelter.id, 8);
+  const animals = await listShelterAnimalsWithCurators(linked.shelter.id);
 
   await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
     state: TelegramSessionState.NEWS_SELECT_ANIMAL,
@@ -325,7 +327,16 @@ async function startNewsFlow(ctx: Context) {
     shelterId: linked.shelter.id,
   });
 
+  if (!animals.length) {
+    await ctx.reply(MSG.newsNoCuratedCats, {
+      parse_mode: "Markdown",
+      reply_markup: newsAnimalKeyboard([]),
+    });
+    return;
+  }
+
   await ctx.reply(MSG.newsSelectTarget, {
+    parse_mode: "Markdown",
     reply_markup: newsAnimalKeyboard(animals),
   });
 }
@@ -361,6 +372,29 @@ async function handleNewsPhoto(ctx: Context) {
   await ctx.reply(MSG.newsWriteText);
 }
 
+async function handleNewsTitle(ctx: Context, title: string) {
+  const chatId = BigInt(ctx.chat!.id);
+  const trimmed = title.trim();
+
+  if (!trimmed || trimmed.length > 120) {
+    await ctx.reply(MSG.newsInvalidTitle);
+    return;
+  }
+
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  if (session.state !== TelegramSessionState.NEWS_WRITE_TITLE) return;
+
+  await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+    state: TelegramSessionState.NEWS_UPLOAD_MEDIA,
+    contextData: {
+      ...session.context,
+      title: trimmed,
+    },
+  });
+
+  await proceedToNewsPhotoStep(ctx, chatId);
+}
+
 async function handleNewsText(ctx: Context, text: string) {
   const chatId = BigInt(ctx.chat!.id);
   const linked = await requireVolunteer(ctx);
@@ -392,6 +426,7 @@ async function handleNewsText(ctx: Context, text: string) {
       type: postType,
       animalId:
         postType === LifeStoryType.ANIMAL_STORY ? claimed.animalId : null,
+      title: postType === LifeStoryType.SHELTER_NEWS ? claimed.title : null,
       content: trimmed,
       photoFileId: claimed.photoFileId,
     });
@@ -588,13 +623,13 @@ export function registerVolunteerHandlers(bot: Bot) {
 
     if (action === "shelter") {
       await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
-        state: TelegramSessionState.NEWS_UPLOAD_MEDIA,
+        state: TelegramSessionState.NEWS_WRITE_TITLE,
         contextData: {
           postType: LifeStoryType.SHELTER_NEWS,
         },
         shelterId: linked.shelter.id,
       });
-      await proceedToNewsPhotoStep(ctx, chatId);
+      await ctx.reply(MSG.newsWriteTitle, { parse_mode: "Markdown" });
       return;
     }
 
@@ -612,6 +647,16 @@ export function registerVolunteerHandlers(bot: Bot) {
 
     if (action.startsWith("animal:")) {
       const animalId = action.slice("animal:".length);
+      const hasCurator = await shelterAnimalHasActiveCurator(
+        linked.shelter.id,
+        animalId,
+      );
+
+      if (!hasCurator) {
+        await ctx.reply(MSG.newsAnimalNoCurator, { parse_mode: "Markdown" });
+        return;
+      }
+
       await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
         state: TelegramSessionState.NEWS_UPLOAD_MEDIA,
         contextData: {
@@ -684,6 +729,11 @@ export function registerVolunteerHandlers(bot: Bot) {
       });
 
       await submitAccessRequest(ctx);
+      return;
+    }
+
+    if (session.state === TelegramSessionState.NEWS_WRITE_TITLE) {
+      await handleNewsTitle(ctx, text);
       return;
     }
 

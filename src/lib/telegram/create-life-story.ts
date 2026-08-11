@@ -7,6 +7,7 @@ export async function publishNewsFromTelegram({
   authorId,
   type,
   animalId,
+  title,
   content,
   photoFileId,
 }: {
@@ -14,6 +15,7 @@ export async function publishNewsFromTelegram({
   authorId: string;
   type: LifeStoryType;
   animalId?: string | null;
+  title?: string | null;
   content: string;
   photoFileId?: string;
 }) {
@@ -29,6 +31,7 @@ export async function publishNewsFromTelegram({
     authorId,
     type,
     animalId,
+    title: type === LifeStoryType.SHELTER_NEWS ? title : null,
     content,
     publish: true,
     photos,

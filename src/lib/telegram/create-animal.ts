@@ -1,4 +1,8 @@
-import { AnimalStatus } from "@prisma/client";
+import {
+  AnimalStatus,
+  CuratorRelationshipStatus,
+  SponsorshipStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { DEFAULT_ANIMAL_LOCATION } from "@/lib/constants";
 import { slugify } from "@/lib/slug";
@@ -81,4 +85,41 @@ export async function listShelterAnimals(shelterId: string, limit = 10) {
     take: limit,
     select: { id: true, name: true, slug: true, status: true },
   });
+}
+
+const activeCuratorshipFilter = {
+  status: SponsorshipStatus.ACTIVE,
+  curatorStatus: CuratorRelationshipStatus.ACTIVE,
+} as const;
+
+/** Cats with at least one active curator — for volunteer news to curators. */
+export async function listShelterAnimalsWithCurators(
+  shelterId: string,
+  limit = 30,
+) {
+  return prisma.animal.findMany({
+    where: {
+      shelterId,
+      status: { not: AnimalStatus.ADOPTED },
+      sponsorships: { some: activeCuratorshipFilter },
+    },
+    orderBy: { name: "asc" },
+    take: limit,
+    select: { id: true, name: true },
+  });
+}
+
+export async function shelterAnimalHasActiveCurator(
+  shelterId: string,
+  animalId: string,
+) {
+  const animal = await prisma.animal.findFirst({
+    where: {
+      id: animalId,
+      shelterId,
+      sponsorships: { some: activeCuratorshipFilter },
+    },
+    select: { id: true },
+  });
+  return animal != null;
 }
