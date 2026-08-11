@@ -18,7 +18,7 @@ export function appendNavRow(keyboard: InlineKeyboard): InlineKeyboard {
   return keyboard
     .row()
     .text("◀️ Назад", "nav:back")
-    .text("🏠 Меню", "nav:home");
+    .text("🏠 Головне меню", "nav:home");
 }
 
 export async function transitionSession(

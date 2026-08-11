@@ -7,8 +7,7 @@ import {
   VolunteerAccessRequestStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { AnimalStatus } from "@prisma/client";
-import { getCrmStatusLabel } from "@/lib/animal-labels";
+import { getCrmStatusLabel, sexLabels } from "@/lib/animal-labels";
 import { createCuratorFromTelegram } from "@/lib/telegram/create-curator";
 import {
   createAnimalFromTelegram,
@@ -24,7 +23,7 @@ import {
   redeemTelegramLinkCode,
 } from "@/lib/telegram/link";
 import {
-  getShelterAnimalById,
+  getShelterAnimalProfileForTelegram,
   searchShelterAnimalsByQuery,
 } from "@/lib/telegram/search-animal";
 import {
@@ -55,7 +54,7 @@ import {
   accessSkipEmailKeyboard,
   afterAnimalKeyboard,
   animalPickKeyboard,
-  catProfileKeyboard,
+  catSearchDetailKeyboard,
   curatorSearchAnimalKeyboard,
   curatorSkipPhoneKeyboard,
   MSG,
@@ -204,6 +203,70 @@ async function submitAccessRequest(ctx: Context) {
     }
     await ctx.reply("Не вдалося надіслати запит. Спробуйте пізніше.");
   }
+}
+
+async function proceedAfterCuratorContact(ctx: Context, chatId: bigint) {
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+
+  if (session.context.curatorDraft?.animalId) {
+    const animal = await getShelterAnimalProfileForTelegram(
+      session.shelterId!,
+      session.context.curatorDraft.animalId,
+    );
+
+    await transitionSession(chatId, {
+      state: TelegramSessionState.CURATOR_ADD_AMOUNT,
+      contextData: session.context,
+      shelterId: session.shelterId,
+    });
+
+    await replyWithNav(
+      ctx,
+      MSG.curatorAddAmount(
+        animal?.name ?? session.context.curatorDraft.animalName ?? "котика",
+        animal?.minCuratorshipAmount,
+      ),
+      { parse_mode: "Markdown" },
+    );
+    return;
+  }
+
+  await proceedToCuratorPickAnimal(ctx, chatId);
+}
+
+async function startCuratorAddForAnimal(
+  ctx: Context,
+  linked: NonNullable<Awaited<ReturnType<typeof requireVolunteer>>>,
+  animalId: string,
+) {
+  const animal = await getShelterAnimalProfileForTelegram(
+    linked.shelter.id,
+    animalId,
+  );
+
+  if (!animal) {
+    await replyWithNav(ctx, MSG.catSearchEmpty);
+    return;
+  }
+
+  if (animal.hasCurator) {
+    await replyWithNav(ctx, MSG.catAlreadyHasCurator);
+    return;
+  }
+
+  const chatId = BigInt(ctx.chat!.id);
+  await transitionSession(chatId, {
+    state: TelegramSessionState.CURATOR_ADD_NAME,
+    contextData: {
+      curatorDraft: {
+        animalId: animal.id,
+        animalName: animal.name,
+      },
+    },
+    shelterId: linked.shelter.id,
+  });
+
+  await replyWithNav(ctx, MSG.curatorAddName);
 }
 
 async function proceedToCuratorPickAnimal(ctx: Context, chatId: bigint) {
@@ -575,7 +638,7 @@ async function handleCuratorPhone(ctx: Context, text: string) {
     },
   });
 
-  await proceedToCuratorPickAnimal(ctx, chatId);
+  await proceedAfterCuratorContact(ctx, chatId);
 }
 
 async function handleCuratorAmount(ctx: Context, text: string) {
@@ -631,7 +694,10 @@ async function assignCuratorAnimal(
   animalId: string,
 ) {
   const chatId = BigInt(ctx.chat!.id);
-  const animal = await getShelterAnimalById(linked.shelter.id, animalId);
+  const animal = await getShelterAnimalProfileForTelegram(
+    linked.shelter.id,
+    animalId,
+  );
 
   if (!animal) {
     await replyWithNav(ctx, MSG.catSearchEmpty);
@@ -665,6 +731,28 @@ async function handleCatSearchQuery(ctx: Context, query: string) {
 
   const chatId = BigInt(ctx.chat!.id);
   const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+
+  if (session.state !== TelegramSessionState.CAT_SEARCH) {
+    return;
+  }
+
+  const messageId = ctx.message?.message_id;
+  if (
+    messageId != null &&
+    session.context.lastHandledMessageId === messageId
+  ) {
+    return;
+  }
+
+  if (messageId != null) {
+    await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+      contextData: {
+        ...session.context,
+        lastHandledMessageId: messageId,
+      },
+    });
+  }
+
   const hits = await searchShelterAnimalsByQuery(linked.shelter.id, query);
 
   if (!hits.length) {
@@ -673,12 +761,18 @@ async function handleCatSearchQuery(ctx: Context, query: string) {
   }
 
   const flow = session.context.catSearchFlow ?? "lookup";
-  const prefix = flow === "curator" ? "curator" : "search";
 
   if (flow === "curator" && hits.length === 1) {
     await assignCuratorAnimal(ctx, linked, hits[0]!.id);
     return;
   }
+
+  if (flow === "lookup" && hits.length === 1) {
+    await showCatSearchResult(ctx, linked, hits[0]!.id);
+    return;
+  }
+
+  const prefix = flow === "curator" ? "curator" : "search";
 
   await replyWithNav(ctx, MSG.catSearchPick, {
     reply_markup: animalPickKeyboard(
@@ -693,27 +787,40 @@ async function showCatSearchResult(
   linked: NonNullable<Awaited<ReturnType<typeof requireVolunteer>>>,
   animalId: string,
 ) {
-  const animal = await getShelterAnimalById(linked.shelter.id, animalId);
+  const animal = await getShelterAnimalProfileForTelegram(
+    linked.shelter.id,
+    animalId,
+  );
   if (!animal) {
     await replyWithNav(ctx, MSG.catSearchEmpty);
     return;
   }
 
-  const statusLabel = getCrmStatusLabel(animal.status as AnimalStatus);
+  const caption = MSG.catSearchResult({
+    name: animal.name,
+    slug: animal.slug,
+    sexLabel: sexLabels[animal.sex],
+    statusLabel: getCrmStatusLabel(animal.status),
+    hasCurator: animal.hasCurator,
+    description: animal.description,
+    minCuratorshipAmount: animal.minCuratorshipAmount,
+  });
 
-  await replyWithNav(
-    ctx,
-    MSG.catSearchResult(
-      animal.name,
-      animal.slug,
-      statusLabel,
-      animal.hasCurator,
-    ),
-    {
+  const keyboard = catSearchDetailKeyboard(animal.id, animal.hasCurator);
+
+  if (animal.coverPhotoUrl) {
+    await ctx.replyWithPhoto(animal.coverPhotoUrl, {
+      caption,
       parse_mode: "Markdown",
-      reply_markup: catProfileKeyboard(linked.shelter.slug, animal.slug),
-    },
-  );
+      reply_markup: keyboard,
+    });
+    return;
+  }
+
+  await ctx.reply(caption, {
+    parse_mode: "Markdown",
+    reply_markup: keyboard,
+  });
 }
 
 export function registerVolunteerHandlers(bot: Bot) {
@@ -944,7 +1051,7 @@ export function registerVolunteerHandlers(bot: Bot) {
         },
       });
 
-      await proceedToCuratorPickAnimal(ctx, chatId);
+      await proceedAfterCuratorContact(ctx, chatId);
       return;
     }
 
@@ -959,12 +1066,22 @@ export function registerVolunteerHandlers(bot: Bot) {
     }
   });
 
-  bot.callbackQuery(/^search:pick:/, async (ctx) => {
+  bot.callbackQuery(/^search:(pick|add_curator):/, async (ctx) => {
     await ctx.answerCallbackQuery();
     const linked = await requireVolunteer(ctx);
     if (!linked) return;
 
-    const animalId = ctx.callbackQuery.data.slice("search:pick:".length);
+    const [, action, animalId] = ctx.callbackQuery.data.match(
+      /^search:(pick|add_curator):(.+)$/,
+    ) ?? [null, null, null];
+
+    if (!action || !animalId) return;
+
+    if (action === "add_curator") {
+      await startCuratorAddForAnimal(ctx, linked, animalId);
+      return;
+    }
+
     await showCatSearchResult(ctx, linked, animalId);
   });
 

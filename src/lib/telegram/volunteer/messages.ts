@@ -95,13 +95,38 @@ export const MSG = {
   catSearchPrompt: "Введіть *ім'я* або *slug* котика:",
   catSearchEmpty: "Нічого не знайдено. Спробуйте інший запит.",
   catSearchPick: "Оберіть котика з результатів:",
-  catSearchResult: (
-    name: string,
-    slug: string,
-    statusLabel: string,
-    hasCurator: boolean,
-  ) =>
-    `🐈 *${name}*\nslug: \`${slug}\`\nСтатус: ${statusLabel}\nКуратор: ${hasCurator ? "так ✅" : "ні"}`,
+  catSearchResult: (params: {
+    name: string;
+    slug: string;
+    sexLabel: string;
+    statusLabel: string;
+    hasCurator: boolean;
+    description?: string | null;
+    minCuratorshipAmount?: number | null;
+  }) => {
+    const lines = [
+      `🐈 *${params.name}*`,
+      `slug: \`${params.slug}\``,
+      `Стать: ${params.sexLabel}`,
+      `Статус: ${params.statusLabel}`,
+      `Куратор: ${params.hasCurator ? "так ✅" : "ні"}`,
+    ];
+
+    if (params.minCuratorshipAmount != null) {
+      lines.push(`Мін. кураторство: ${params.minCuratorshipAmount} ₴/міс`);
+    }
+
+    if (params.description?.trim()) {
+      const short =
+        params.description.trim().length > 220
+          ? `${params.description.trim().slice(0, 217)}…`
+          : params.description.trim();
+      lines.push("", short);
+    }
+
+    return lines.join("\n");
+  },
+  catAlreadyHasCurator: "У цього котика вже є активний куратор.",
 
   settingsSoon: "⚙️ Налаштування — скоро!",
 } as const;
@@ -109,7 +134,7 @@ export const MSG = {
 export function navOnlyKeyboard() {
   return new InlineKeyboard()
     .text("◀️ Назад", "nav:back")
-    .text("🏠 Меню", "nav:home");
+    .text("🏠 Головне меню", "nav:home");
 }
 
 export function mainMenuKeyboard() {
@@ -195,6 +220,17 @@ export function animalPickKeyboard(
     keyboard.row().text(animal.name, `${prefix}:pick:${animal.id}`);
   }
 
+  return keyboard;
+}
+
+export function catSearchDetailKeyboard(animalId: string, hasCurator: boolean) {
+  const keyboard = new InlineKeyboard();
+
+  if (!hasCurator) {
+    keyboard.text("➕ Додати йому куратора", `search:add_curator:${animalId}`).row();
+  }
+
+  keyboard.text("◀️ Назад", "nav:back").text("🏠 Головне меню", "nav:home");
   return keyboard;
 }
 

@@ -27,6 +27,7 @@ export interface VolunteerSessionContext {
   navStack?: NavFrame[];
   curatorDraft?: CuratorDraft;
   catSearchFlow?: CatSearchFlow;
+  lastHandledMessageId?: number;
 }
 
 export type SessionUpdate = {
