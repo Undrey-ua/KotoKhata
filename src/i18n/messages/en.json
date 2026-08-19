@@ -61,61 +61,54 @@
     }
   },
   "landing": {
-    "heroTitle": "Every cat deserves love",
-    "heroSubtitle": "Meet the residents of KotoXata shelter, become a sponsor, or give a forever home.",
-    "ctaShelter": "Visit KotoXata shelter",
-    "ctaSponsor": "Become a sponsor",
-    "ctaFindFriend": "Find a friend",
-    "howToHelp": "How to help",
-    "featuredCat": "Meet them →",
-    "featuredPlaceholder": "A featured cat will appear here soon",
-    "progressMissionLead": "Our mission",
-    "progressMission": "some have already found a home, while others are still waiting for your help",
-    "newcomerBadge": "New arrival",
-    "newcomerCaption": "Just joined the shelter →",
-    "adoptedCaption": "A happy ending →",
-    "features": {
-      "connect": {
-        "title": "Emotional connection",
-        "description": "Follow your sponsored cat's life via Telegram — your ward is always with you."
-      },
-      "curator": {
-        "title": "Easy to become a curator",
-        "description": "Pick a cat from the catalog, choose a comfortable monthly amount — and receive updates on how your support helps them directly."
-      },
-      "support": {
-        "title": "Support that saves lives",
-        "description": "Financial help follows love. Connection first, support second."
-      }
+    "metaTitle": "KotoXata — a home for real cats",
+    "heroLine1": "Some have already found a home.",
+    "heroLine2": "Others are still waiting for your help.",
+    "heroSubtitle": "Meet the residents of KotoXata, help a cat find a home, or become their financial curator.",
+    "ctaFindCat": "Find a cat",
+    "ctaCurator": "Become a curator",
+    "heroBadgeNew": "New arrival",
+    "heroBadgeHome": "🏠 Home at last",
+    "heroWaitingLabel": "Still waiting for you",
+    "heroHomeLabel": "Found a forever home",
+    "statsStrip": {
+      "inCare": "cats currently live at KotoXata",
+      "adopted": "have found their home",
+      "curators": "cats have a financial curator",
+      "lifeLink": "What's new at KotoXata?"
     },
-    "stats": {
-      "shelter": "Shelter",
-      "mission": "Mission",
-      "missionText": "Help every cat find a home and people who will love them"
+    "residents": {
+      "title": "Meet the residents of KotoXata",
+      "subtitle": "Each has a name, personality, and story. Some are home already — others are waiting for you.",
+      "viewAll": "All cats"
     },
-    "curatorship": {
-      "title": "What is financial curatorship?",
-      "intro": "Financial curatorship means regular support for a specific cat. You don't just send money \"somewhere\" — you become a guardian of a living soul with a name, personality, and story.",
-      "steps": {
-        "choose": {
-          "title": "Choose a cat",
-          "description": "Browse the catalog, read their story, and find the one that speaks to you."
-        },
-        "support": {
-          "title": "Support monthly",
-          "description": "A fixed contribution covers food, medicine, and care for your sponsored cat."
-        },
-        "connect": {
-          "title": "Stay connected",
-          "description": "Receive news, photos, and updates about your cat — on the website and via Telegram."
-        }
-      },
-      "note": "Connection first. Then financial support that saves lives.",
-      "cta": "Choose a cat to sponsor"
+    "status": {
+      "atHome": "🏠 Home at last",
+      "seekingCurator": "❤️ Needs a curator",
+      "hasCuratorSeekingHome": "🐾 Seeking a home · ❤️ has a curator"
+    },
+    "adoptedGallery": {
+      "title": "They're home now",
+      "subtitle": "Happy endings — proof that every cat can find their family.",
+      "badge": "🏠 Home at last",
+      "viewAll": "All happy stories"
+    },
+    "paths": {
+      "homeTitle": "Find a cat a home",
+      "homeText": "Meet the shelter residents, come for a visit, and give a cat a family.",
+      "homeCta": "Find a home",
+      "curatorTitle": "Become a financial curator",
+      "curatorText": "Choose a specific cat and support them monthly — food, medicine, and care just for them.",
+      "curatorCta": "Become a curator"
+    },
+    "stories": {
+      "title": "What's new at KotoXata?",
+      "subtitle": "Live updates from volunteers — small moments from shelter life.",
+      "viewAll": "All stories"
     },
     "funds": {
-      "title": "Where do shelter funds go?",
-      "intro": "Every hryvnia goes to real animal needs. We publish reports and show exactly how donations are used.",
+      "title": "You're not helping an abstract shelter",
+      "intro": "Every hryvnia goes to real needs of specific cats — food, medicine, care, and keeping the home where they live.",
       "items": {
         "food": {
           "title": "Food & nutrition",

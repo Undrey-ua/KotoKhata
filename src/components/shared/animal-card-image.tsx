@@ -6,6 +6,8 @@ type AnimalCardImageProps = {
   name: string;
   className?: string;
   objectFit?: "contain" | "cover";
+  loading?: "lazy" | "eager";
+  fetchPriority?: "high" | "low" | "auto";
 };
 
 export function AnimalCardImage({
@@ -13,6 +15,8 @@ export function AnimalCardImage({
   name,
   className,
   objectFit = "contain",
+  loading,
+  fetchPriority,
 }: AnimalCardImageProps) {
   if (src) {
     return (
@@ -25,6 +29,8 @@ export function AnimalCardImage({
         <SafeImage
           src={src}
           alt={name}
+          loading={loading}
+          fetchPriority={fetchPriority}
           className={cn(
             "h-full w-full",
             objectFit === "cover" ? "object-cover" : "object-contain",

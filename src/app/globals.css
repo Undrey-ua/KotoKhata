@@ -113,4 +113,20 @@
   .section-charcoal {
     @apply bg-charcoal text-charcoal-foreground;
   }
+
+  .landing-page {
+    --landing-bg: #faf6f0;
+    --landing-text: #3a3530;
+    --landing-muted: #6f6760;
+    --landing-terracotta: #c46844;
+    --landing-terracotta-hover: #a85638;
+    --landing-green: #5f8a66;
+    --landing-green-soft: #e9f0ea;
+    --landing-beige: #f3ebe0;
+    --landing-beige-dark: #e6d9c8;
+    --landing-card: #fffdf9;
+    --landing-border: #e8ddd0;
+    background-color: var(--landing-bg);
+    color: var(--landing-text);
+  }
 }
