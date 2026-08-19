@@ -32,7 +32,7 @@ export function getPublicHomeStatusLabel(status: AnimalStatus) {
 }
 
 export function getPublicHomeStatusShort(status: AnimalStatus) {
-  return isAdopted(status) ? "Прилаштований" : "Шукає дім";
+  return isAdopted(status) ? "Нарешті вдома" : "Шукає дім";
 }
 
 export function getCrmStatusLabel(status: AnimalStatus) {

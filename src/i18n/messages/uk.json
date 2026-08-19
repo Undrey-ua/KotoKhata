@@ -27,7 +27,7 @@
   },
   "stats": {
     "inCare": "мешканці",
-    "adopted": "пристроєно",
+    "adopted": "знайшли дім",
     "guardians": "опікуни",
     "news": "історії життя"
   },
@@ -69,6 +69,11 @@
     "howToHelp": "Як допомогти",
     "featuredCat": "Познайомтесь ближче →",
     "featuredPlaceholder": "Скоро тут з'явиться перший котик",
+    "progressTitle": "Наш прогрес",
+    "progressSubtitle": "Хтось уже знайшов домівку, а хтось дуже чекає на вашу увагу.",
+    "newcomerBadge": "Новенький",
+    "newcomerCaption": "Щойно з'явився в притулку →",
+    "adoptedCaption": "Історія щастя →",
     "features": {
       "connect": {
         "title": "Емоційний зв'язок",
@@ -142,7 +147,8 @@
     "title": "Котики",
     "subtitle": "Познайомтесь з мешканцями притулку та знайдіть свого підопічного.",
     "fundedShort": "Забезпечено на {percent}%",
-    "adopted": "Прилаштований",
+    "adopted": "Нарешті вдома",
+    "seekingHome": "Шукає дім",
     "filtersTitle": "Фільтри",
     "sex": "Стать",
     "support": "Підтримка",
@@ -151,7 +157,7 @@
     "filterGirls": "Дівчатка",
     "filterNeedsCurator": "Потребують опікуна",
     "filterHasCurators": "Під кураторством",
-    "filterAdopted": "Прилаштовані",
+    "filterAdopted": "Нарешті вдома",
     "search": "Пошук",
     "searchPlaceholder": "Ім'я або опис…",
     "age": "Вік",

@@ -27,7 +27,7 @@
   },
   "stats": {
     "inCare": "residents",
-    "adopted": "rehomed",
+    "adopted": "found a home",
     "guardians": "guardians",
     "news": "life stories"
   },
@@ -69,6 +69,11 @@
     "howToHelp": "How to help",
     "featuredCat": "Meet them →",
     "featuredPlaceholder": "A featured cat will appear here soon",
+    "progressTitle": "Our progress",
+    "progressSubtitle": "Some have found a home; others are still waiting for yours.",
+    "newcomerBadge": "New arrival",
+    "newcomerCaption": "Just joined the shelter →",
+    "adoptedCaption": "A happy ending →",
     "features": {
       "connect": {
         "title": "Emotional connection",
@@ -142,7 +147,8 @@
     "title": "Cats",
     "subtitle": "Meet our shelter residents and find a friend to support.",
     "fundedShort": "{percent}% funded",
-    "adopted": "Adopted",
+    "adopted": "Home at last",
+    "seekingHome": "Seeking a home",
     "filtersTitle": "Filters",
     "sex": "Sex",
     "support": "Support",
@@ -151,7 +157,7 @@
     "filterGirls": "Girls",
     "filterNeedsCurator": "Need a curator",
     "filterHasCurators": "Under curator care",
-    "filterAdopted": "Adopted",
+    "filterAdopted": "Home at last",
     "search": "Search",
     "searchPlaceholder": "Name or description…",
     "age": "Age",

@@ -14,7 +14,6 @@ import { formatAnimalAge } from "@/lib/animal-age";
 import {
   personalityLabels,
   sexLabels,
-  getPublicHomeStatusShort,
   isAdopted,
 } from "@/lib/animal-labels";
 import { prisma } from "@/lib/db/prisma";
@@ -96,6 +95,7 @@ export default async function CatProfilePage({
   const { locale, shelterSlug, slug } = await params;
   setRequestLocale(locale);
   const tp = await getTranslations("animalProfile");
+  const tc = await getTranslations("catalog");
   const tPay = await getTranslations("payments");
 
   const shelter = await prisma.shelter.findUnique({
@@ -149,6 +149,10 @@ export default async function CatProfilePage({
     { ok: animal.sterilized, label: tp("sterilized") },
   ];
 
+  const homeStatusLabel = isAdopted(animal.status)
+    ? tc("adopted")
+    : tc("seekingHome");
+
   const profileUrl = buildAbsoluteUrl(locale, `/s/${shelterSlug}/cats/${slug}`);
 
   return (
@@ -186,7 +190,7 @@ export default async function CatProfilePage({
               <AnimalPhotoLightboxTrigger
                 index={coverIndex}
                 disabled={photos.length === 0}
-                className="block w-full"
+                className="relative block w-full"
               >
                 <AnimalCardImage
                   src={cover?.url ?? null}
@@ -194,6 +198,11 @@ export default async function CatProfilePage({
                   objectFit="cover"
                   className="aspect-[3/4] w-full"
                 />
+                {isAdopted(animal.status) && (
+                  <span className="absolute bottom-3 left-3 rounded-md bg-emerald-600/95 px-2 py-1 text-xs font-medium text-white">
+                    {tc("adopted")}
+                  </span>
+                )}
               </AnimalPhotoLightboxTrigger>
             </div>
 
@@ -214,8 +223,14 @@ export default async function CatProfilePage({
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-warm/25 px-3 py-1 text-sm font-medium text-primary">
-                  {getPublicHomeStatusShort(animal.status)}
+                <span
+                  className={`rounded-full px-3 py-1 text-sm font-medium ${
+                    isAdopted(animal.status)
+                      ? "bg-emerald-600/15 text-emerald-800"
+                      : "bg-warm/25 text-primary"
+                  }`}
+                >
+                  {homeStatusLabel}
                 </span>
                 {funding.hasCurators && !isAdopted(animal.status) && (
                   <span className="rounded-full bg-primary/15 px-3 py-1 text-sm font-medium text-primary">
@@ -240,7 +255,7 @@ export default async function CatProfilePage({
                 { label: tp("age"), value: age },
                 { label: tp("sex"), value: sexLabels[animal.sex] },
                 { label: tp("personality"), value: personalityLabels[animal.personality] },
-                { label: tp("status"), value: getPublicHomeStatusShort(animal.status) },
+                { label: tp("status"), value: homeStatusLabel },
               ].map(({ label, value }) => (
                 <div
                   key={label}

@@ -8,7 +8,7 @@ import { requireShelterMember } from "@/lib/auth/session";
 import { slugify } from "@/lib/slug";
 import { parseAnimalForm } from "@/lib/validations/animal";
 import { uploadAnimalPhoto, deleteAllAnimalMedia } from "@/lib/storage/media";
-import { SponsorshipStatus } from "@prisma/client";
+import { SponsorshipStatus, AnimalStatus } from "@prisma/client";
 
 function revalidateAnimalPaths(shelterSlug: string, animalSlug?: string) {
   revalidatePath(`/s/${shelterSlug}/cats`);
@@ -80,6 +80,8 @@ export async function createAnimalAction(
         shelterId: ctx.shelterId,
         monthlyGoal: data.monthlyGoal ?? null,
         minCuratorshipAmount: data.minCuratorshipAmount ?? null,
+        adoptedAt:
+          data.status === AnimalStatus.ADOPTED ? new Date() : null,
       },
     });
 
@@ -117,6 +119,16 @@ export async function updateAnimalAction(
       return { error: "Animal not found" };
     }
 
+    let adoptedAt = existing.adoptedAt;
+    if (
+      data.status === AnimalStatus.ADOPTED &&
+      existing.status !== AnimalStatus.ADOPTED
+    ) {
+      adoptedAt = new Date();
+    } else if (data.status !== AnimalStatus.ADOPTED) {
+      adoptedAt = null;
+    }
+
     await prisma.animal.update({
       where: { id: animalId },
       data: {
@@ -135,6 +147,7 @@ export async function updateAnimalAction(
         birthDate: data.birthDate,
         monthlyGoal: data.monthlyGoal ?? null,
         minCuratorshipAmount: data.minCuratorshipAmount ?? null,
+        adoptedAt,
       },
     });
 

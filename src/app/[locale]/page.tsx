@@ -1,10 +1,10 @@
 import { Link } from "@/i18n/navigation";
 import { BrandLogo } from "@/components/brand-logo";
-import { AnimalCardImage } from "@/components/shared/animal-card-image";
+import { HomepageSpotlightCats } from "@/components/landing/homepage-spotlight-cats";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
 import { setRequestLocale, getTranslations } from "next-intl/server";
-import { getFeaturedAnimal, getShelterStats } from "@/lib/shelter-stats";
+import { getLatestAdoptedAnimal, getLatestNewAnimal, getShelterStats } from "@/lib/shelter-stats";
 import { buildAbsoluteUrl, buildPageMetadata, getMetadataBase } from "@/lib/seo/metadata";
 import { Heart, HandCoins, Sparkles, Cat, MessageCircle, Utensils, Stethoscope, Package, Building2 } from "lucide-react";
 
@@ -37,10 +37,12 @@ export default async function HomePage({
   setRequestLocale(locale);
   const t = await getTranslations("landing");
   const ts = await getTranslations("stats");
+  const tc = await getTranslations("catalog");
 
-  const [stats, featured] = await Promise.all([
+  const [stats, latestNew, latestAdopted] = await Promise.all([
     getShelterStats(SHELTER_SLUG),
-    getFeaturedAnimal(SHELTER_SLUG),
+    getLatestNewAnimal(SHELTER_SLUG),
+    getLatestAdoptedAnimal(SHELTER_SLUG),
   ]);
 
   const statItems = [
@@ -129,28 +131,23 @@ export default async function HomePage({
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[280px] sm:max-w-xs lg:mx-0 lg:ml-auto lg:max-w-[320px]">
-            <div className="overflow-hidden rounded-2xl border border-border-cool bg-card shadow-lg">
-              {featured?.imageUrl ? (
-                <Link href={`/s/${SHELTER_SLUG}/cats/${featured.slug}`}>
-                  <AnimalCardImage
-                    src={featured.imageUrl}
-                    name={featured.name}
-                    objectFit="cover"
-                    className="aspect-[3/4] w-full"
-                  />
-                  <div className="border-t border-border-cool bg-card px-4 py-3">
-                    <p className="font-semibold text-foreground">{featured.name}</p>
-                    <p className="text-sm text-muted-foreground">{t("featuredCat")}</p>
-                  </div>
-                </Link>
-              ) : (
-                <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 bg-surface-cool p-8 text-center">
-                  <BrandLogo size={80} />
-                  <p className="text-sm text-muted-foreground">{t("featuredPlaceholder")}</p>
-                </div>
-              )}
-            </div>
+          <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto lg:max-w-lg">
+            <p className="mb-3 text-center text-sm font-medium text-muted-foreground lg:text-left">
+              {t("progressTitle")}
+            </p>
+            <p className="mb-4 text-center text-sm leading-relaxed text-muted-foreground lg:text-left">
+              {t("progressSubtitle")}
+            </p>
+            <HomepageSpotlightCats
+              shelterSlug={SHELTER_SLUG}
+              latestNew={latestNew}
+              latestAdopted={latestAdopted}
+              newcomerBadge={t("newcomerBadge")}
+              adoptedBadge={tc("adopted")}
+              newcomerCaption={t("newcomerCaption")}
+              adoptedCaption={t("adoptedCaption")}
+              placeholder={t("featuredPlaceholder")}
+            />
           </div>
         </div>
       </section>
