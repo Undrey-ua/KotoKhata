@@ -90,6 +90,10 @@ export const MSG = {
   curatorInvalidAmount: "Вкажіть додатну суму в гривнях.",
   curatorAdded: (curatorName: string, animalName: string, amount: number) =>
     `✅ Куратора *${curatorName}* додано до *${animalName}* (${amount} ₴/міс).`,
+  curatorReusePrompt: (fullName: string, email: string) =>
+    `Нещодавно ви додавали *${fullName}* (${email}).\n\nДодати котика цьому куратору чи ввести дані нового?`,
+  curatorPickAnimalFor: (fullName: string) =>
+    `Оберіть котика для *${fullName}*.\n\nНатисніть «Пошук котика», потім введіть *ім'я* або *slug* підопічного.`,
   curatorAddFailed: "Не вдалося додати куратора. Спробуйте через CRM.",
   curatorAddIncomplete:
     "Дані куратора втрачено. Почніть додавання знову через меню «Куратори».",
@@ -152,10 +156,30 @@ export function mainMenuKeyboard() {
     .text("⚙️ Налаштування", "menu:settings");
 }
 
-export function curatorsMenuKeyboard() {
-  return new InlineKeyboard()
+export function curatorsMenuKeyboard(options?: { showAddAnother?: boolean }) {
+  const keyboard = new InlineKeyboard()
     .text("➕ Додати куратора", "curator:add")
     .text("📋 Список", "curator:list");
+
+  if (options?.showAddAnother) {
+    keyboard.row().text("➕ Котик існуючому", "curator:add_another");
+  }
+
+  return keyboard;
+}
+
+export function afterCuratorAddedKeyboard() {
+  return new InlineKeyboard()
+    .text("➕ Ще котик цьому куратору", "curator:add_another")
+    .row()
+    .text("👤 Куратори", "menu:curators")
+    .text("🏠 Головне меню", "nav:home");
+}
+
+export function curatorReuseKeyboard() {
+  return new InlineKeyboard()
+    .text("✅ Цей куратор", "curator:reuse_last")
+    .text("➕ Новий куратор", "curator:new");
 }
 
 export function afterAnimalKeyboard() {

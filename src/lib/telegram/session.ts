@@ -89,10 +89,11 @@ export async function updateTelegramSession(
 export async function resetTelegramSession(
   chatId: bigint,
   botType: TelegramBotType,
+  preserveContext: VolunteerSessionContext = {},
 ) {
   return updateTelegramSession(chatId, botType, {
     state: TelegramSessionState.IDLE,
-    contextData: {},
+    contextData: preserveContext,
   });
 }
 

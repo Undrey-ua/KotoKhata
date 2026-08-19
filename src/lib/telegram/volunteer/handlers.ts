@@ -32,6 +32,7 @@ import {
   resetTelegramSession,
   updateTelegramSession,
 } from "@/lib/telegram/session";
+import type { CuratorContact } from "@/lib/telegram/types";
 import {
   approveVolunteerAccessRequest,
   createVolunteerAccessRequest,
@@ -53,8 +54,10 @@ import {
 import {
   accessSkipEmailKeyboard,
   afterAnimalKeyboard,
+  afterCuratorAddedKeyboard,
   animalPickKeyboard,
   catSearchDetailKeyboard,
+  curatorReuseKeyboard,
   curatorSearchAnimalKeyboard,
   curatorSkipPhoneKeyboard,
   MSG,
@@ -73,6 +76,12 @@ import {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function hasCuratorContact(
+  contact?: { fullName?: string; email?: string; phone?: string | null } | null,
+): contact is CuratorContact {
+  return Boolean(contact?.fullName && contact.email);
 }
 
 async function requireVolunteer(ctx: Context) {
@@ -234,6 +243,31 @@ async function proceedAfterCuratorContact(ctx: Context, chatId: bigint) {
   await proceedToCuratorPickAnimal(ctx, chatId);
 }
 
+async function startCuratorAddWithExistingContact(
+  ctx: Context,
+  linked: NonNullable<Awaited<ReturnType<typeof requireVolunteer>>>,
+  contact: CuratorContact,
+) {
+  const chatId = BigInt(ctx.chat!.id);
+
+  await transitionSession(chatId, {
+    state: TelegramSessionState.CURATOR_ADD_ANIMAL,
+    contextData: {
+      curatorDraft: {
+        fullName: contact.fullName,
+        email: contact.email,
+        phone: contact.phone,
+      },
+    },
+    shelterId: linked.shelter.id,
+  });
+
+  await replyWithNav(ctx, MSG.curatorPickAnimalFor(contact.fullName), {
+    parse_mode: "Markdown",
+    reply_markup: curatorSearchAnimalKeyboard(),
+  });
+}
+
 async function startCuratorAddForAnimal(
   ctx: Context,
   linked: NonNullable<Awaited<ReturnType<typeof requireVolunteer>>>,
@@ -255,6 +289,56 @@ async function startCuratorAddForAnimal(
   }
 
   const chatId = BigInt(ctx.chat!.id);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const draft = session.context.curatorDraft;
+  const lastContact = session.context.lastCuratorContact;
+
+  if (hasCuratorContact(draft)) {
+    await transitionSession(chatId, {
+      state: TelegramSessionState.CURATOR_ADD_AMOUNT,
+      contextData: {
+        ...session.context,
+        curatorDraft: {
+          ...draft,
+          animalId: animal.id,
+          animalName: animal.name,
+        },
+      },
+      shelterId: linked.shelter.id,
+    });
+
+    await replyWithNav(
+      ctx,
+      MSG.curatorAddAmount(animal.name, animal.minCuratorshipAmount),
+      { parse_mode: "Markdown" },
+    );
+    return;
+  }
+
+  if (hasCuratorContact(lastContact)) {
+    await transitionSession(chatId, {
+      state: TelegramSessionState.CURATOR_ADD_AMOUNT,
+      contextData: {
+        ...session.context,
+        curatorDraft: {
+          fullName: lastContact.fullName,
+          email: lastContact.email,
+          phone: lastContact.phone,
+          animalId: animal.id,
+          animalName: animal.name,
+        },
+      },
+      shelterId: linked.shelter.id,
+    });
+
+    await replyWithNav(
+      ctx,
+      MSG.curatorAddAmount(animal.name, animal.minCuratorshipAmount),
+      { parse_mode: "Markdown" },
+    );
+    return;
+  }
+
   await transitionSession(chatId, {
     state: TelegramSessionState.CURATOR_ADD_NAME,
     contextData: {
@@ -566,6 +650,21 @@ async function startCuratorAddFlow(ctx: Context) {
   if (!linked) return;
 
   const chatId = BigInt(ctx.chat!.id);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const lastContact = session.context.lastCuratorContact;
+
+  if (hasCuratorContact(lastContact)) {
+    await replyWithNav(
+      ctx,
+      MSG.curatorReusePrompt(lastContact.fullName, lastContact.email),
+      {
+        parse_mode: "Markdown",
+        reply_markup: curatorReuseKeyboard(),
+      },
+    );
+    return;
+  }
+
   await transitionSession(chatId, {
     state: TelegramSessionState.CURATOR_ADD_NAME,
     contextData: { curatorDraft: {} },
@@ -670,7 +769,10 @@ async function handleCuratorAmount(ctx: Context, text: string) {
 
   const draft = session.context.curatorDraft;
   if (!draft?.fullName || !draft.email || !draft.animalId) {
-    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+    const preserve = hasCuratorContact(session.context.lastCuratorContact)
+      ? { lastCuratorContact: session.context.lastCuratorContact }
+      : {};
+    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER, preserve);
     await replyWithNav(ctx, MSG.curatorAddIncomplete, {
       reply_markup: mainMenuKeyboard(),
     });
@@ -702,13 +804,25 @@ async function handleCuratorAmount(ctx: Context, text: string) {
       monthlyAmount: amount,
     });
 
+    await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+      state: TelegramSessionState.IDLE,
+      contextData: {
+        lastCuratorContact: {
+          fullName: claimedDraft.fullName!,
+          email: claimedDraft.email!,
+          phone: claimedDraft.phone ?? null,
+        },
+      },
+      shelterId: linked.shelter.id,
+    });
+
     await ctx.reply(
       MSG.curatorAdded(
         result.curatorName,
         result.animalName,
         result.monthlyAmount,
       ),
-      { reply_markup: mainMenuKeyboard() },
+      { reply_markup: afterCuratorAddedKeyboard() },
     );
   } catch (error) {
     await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
@@ -739,7 +853,21 @@ async function assignCuratorAnimal(
     return;
   }
 
+  if (animal.hasCurator) {
+    await replyWithNav(ctx, MSG.catAlreadyHasCurator);
+    return;
+  }
+
   const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const draft = session.context.curatorDraft;
+
+  if (!draft?.fullName || !draft.email) {
+    await replyWithNav(ctx, MSG.curatorAddIncomplete, {
+      reply_markup: mainMenuKeyboard(),
+    });
+    return;
+  }
+
   await transitionSession(chatId, {
     state: TelegramSessionState.CURATOR_ADD_AMOUNT,
     contextData: {
@@ -1067,6 +1195,29 @@ export function registerVolunteerHandlers(bot: Bot) {
 
     if (action === "add") {
       await startCuratorAddFlow(ctx);
+      return;
+    }
+
+    if (action === "add_another" || action === "reuse_last") {
+      const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+      const contact = session.context.lastCuratorContact;
+
+      if (!hasCuratorContact(contact)) {
+        await startCuratorAddFlow(ctx);
+        return;
+      }
+
+      await startCuratorAddWithExistingContact(ctx, linked, contact);
+      return;
+    }
+
+    if (action === "new") {
+      await transitionSession(chatId, {
+        state: TelegramSessionState.CURATOR_ADD_NAME,
+        contextData: { curatorDraft: {} },
+        shelterId: linked.shelter.id,
+      });
+      await replyWithNav(ctx, MSG.curatorAddName);
       return;
     }
 

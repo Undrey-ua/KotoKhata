@@ -5,6 +5,12 @@ export type NavFrame = {
   context: VolunteerSessionContext;
 };
 
+export type CuratorContact = {
+  fullName: string;
+  email: string;
+  phone?: string | null;
+};
+
 export type CuratorDraft = {
   fullName?: string;
   email?: string;
@@ -26,6 +32,7 @@ export interface VolunteerSessionContext {
   email?: string | null;
   navStack?: NavFrame[];
   curatorDraft?: CuratorDraft;
+  lastCuratorContact?: CuratorContact;
   catSearchFlow?: CatSearchFlow;
   lastHandledMessageId?: number;
 }

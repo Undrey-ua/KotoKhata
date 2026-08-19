@@ -109,12 +109,18 @@ export async function renderSessionStep(ctx: Context, linked: LinkedVolunteer) {
       });
       return;
 
-    case TelegramSessionState.CURATOR_ADD_ANIMAL:
-      await replyWithNav(ctx, MSG.curatorPickAnimal, {
+    case TelegramSessionState.CURATOR_ADD_ANIMAL: {
+      const draft = session.context.curatorDraft;
+      const prompt =
+        draft?.fullName != null
+          ? MSG.curatorPickAnimalFor(draft.fullName)
+          : MSG.curatorPickAnimal;
+      await replyWithNav(ctx, prompt, {
         parse_mode: "Markdown",
         reply_markup: curatorSearchAnimalKeyboard(),
       });
       return;
+    }
 
     case TelegramSessionState.CURATOR_ADD_AMOUNT: {
       const draft = session.context.curatorDraft;
@@ -150,9 +156,16 @@ export async function renderSessionStep(ctx: Context, linked: LinkedVolunteer) {
 }
 
 export async function showCuratorsMenu(ctx: Context) {
+  const chatId = BigInt(ctx.chat!.id);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const showAddAnother = Boolean(
+    session.context.lastCuratorContact?.fullName &&
+      session.context.lastCuratorContact.email,
+  );
+
   await ctx.reply(MSG.curatorsMenu, {
     parse_mode: "Markdown",
-    reply_markup: appendNavRow(curatorsMenuKeyboard()),
+    reply_markup: appendNavRow(curatorsMenuKeyboard({ showAddAnother })),
   });
 }
 

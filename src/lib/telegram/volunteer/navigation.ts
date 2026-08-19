@@ -57,7 +57,12 @@ export async function transitionSession(
 
 export async function goHome(ctx: Context) {
   const chatId = BigInt(ctx.chat!.id);
-  await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  const preserveContext = session.context.lastCuratorContact
+    ? { lastCuratorContact: session.context.lastCuratorContact }
+    : {};
+
+  await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER, preserveContext);
   return chatId;
 }
 
@@ -89,6 +94,7 @@ export function mergeContext(
     ...patch,
     navStack: patch.navStack ?? base.navStack,
     curatorDraft: patch.curatorDraft ?? base.curatorDraft,
+    lastCuratorContact: patch.lastCuratorContact ?? base.lastCuratorContact,
   };
 }
 
