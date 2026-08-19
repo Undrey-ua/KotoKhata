@@ -43,8 +43,9 @@ export async function transitionSession(
     navStack = [...currentStack, frame].slice(-12);
   }
 
-  const contextData = {
-    ...(update.contextData ?? session.context),
+  const contextData: VolunteerSessionContext = {
+    ...session.context,
+    ...(update.contextData ?? {}),
     navStack,
   };
 

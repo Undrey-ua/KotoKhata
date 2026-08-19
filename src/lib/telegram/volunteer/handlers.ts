@@ -641,14 +641,39 @@ async function handleCuratorPhone(ctx: Context, text: string) {
   await proceedAfterCuratorContact(ctx, chatId);
 }
 
+function parseMonthlyAmount(text: string): number | null {
+  const normalized = text.trim().replace(/\s/g, "").replace(",", ".");
+  const match = normalized.match(/^(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+
+  const value = Number.parseFloat(match[1]!);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  return Math.round(value);
+}
+
 async function handleCuratorAmount(ctx: Context, text: string) {
   const chatId = BigInt(ctx.chat!.id);
   const linked = await requireVolunteer(ctx);
   if (!linked?.shelter) return;
 
-  const amount = Number.parseInt(text.trim(), 10);
-  if (!Number.isFinite(amount) || amount <= 0) {
+  const amount = parseMonthlyAmount(text);
+  if (amount == null) {
     await replyWithNav(ctx, MSG.curatorInvalidAmount);
+    return;
+  }
+
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+  if (session.state !== TelegramSessionState.CURATOR_ADD_AMOUNT) {
+    return;
+  }
+
+  const draft = session.context.curatorDraft;
+  if (!draft?.fullName || !draft.email || !draft.animalId) {
+    await resetTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+    await replyWithNav(ctx, MSG.curatorAddIncomplete, {
+      reply_markup: mainMenuKeyboard(),
+    });
     return;
   }
 
@@ -658,18 +683,22 @@ async function handleCuratorAmount(ctx: Context, text: string) {
     TelegramSessionState.CURATOR_ADD_AMOUNT,
   );
 
-  const draft = claimed?.curatorDraft;
-  if (!draft?.fullName || !draft.email || !draft.animalId) {
+  if (!claimed) {
+    await replyWithNav(ctx, MSG.curatorSessionExpired, {
+      reply_markup: mainMenuKeyboard(),
+    });
     return;
   }
+
+  const claimedDraft = claimed.curatorDraft ?? draft;
 
   try {
     const result = await createCuratorFromTelegram({
       shelterId: linked.shelter.id,
-      fullName: draft.fullName,
-      email: draft.email,
-      phone: draft.phone,
-      animalId: draft.animalId,
+      fullName: claimedDraft.fullName!,
+      email: claimedDraft.email!,
+      phone: claimedDraft.phone,
+      animalId: claimedDraft.animalId!,
       monthlyAmount: amount,
     });
 
@@ -679,9 +708,15 @@ async function handleCuratorAmount(ctx: Context, text: string) {
         result.animalName,
         result.monthlyAmount,
       ),
-      { parse_mode: "Markdown", reply_markup: mainMenuKeyboard() },
+      { reply_markup: mainMenuKeyboard() },
     );
   } catch (error) {
+    await updateTelegramSession(chatId, TelegramBotType.VOLUNTEER, {
+      state: TelegramSessionState.CURATOR_ADD_AMOUNT,
+      contextData: claimed,
+      shelterId: linked.shelter.id,
+    });
+
     const message =
       error instanceof Error ? error.message : MSG.curatorAddFailed;
     await replyWithNav(ctx, message);

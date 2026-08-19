@@ -192,9 +192,14 @@ export async function startCatSearchFlow(
   shelterId: string,
   flow: "lookup" | "curator",
 ) {
+  const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
+
   await transitionSession(chatId, {
     state: TelegramSessionState.CAT_SEARCH,
-    contextData: { catSearchFlow: flow },
+    contextData: {
+      ...session.context,
+      catSearchFlow: flow,
+    },
     shelterId,
   });
 

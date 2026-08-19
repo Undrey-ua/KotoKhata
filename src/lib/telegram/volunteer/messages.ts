@@ -91,6 +91,9 @@ export const MSG = {
   curatorAdded: (curatorName: string, animalName: string, amount: number) =>
     `✅ Куратора *${curatorName}* додано до *${animalName}* (${amount} ₴/міс).`,
   curatorAddFailed: "Не вдалося додати куратора. Спробуйте через CRM.",
+  curatorAddIncomplete:
+    "Дані куратора втрачено. Почніть додавання знову через меню «Куратори».",
+  curatorSessionExpired: "Сесію перервано. Почніть додавання куратора знову.",
 
   catSearchPrompt: "Введіть *ім'я* або *slug* котика:",
   catSearchEmpty: "Нічого не знайдено. Спробуйте інший запит.",
