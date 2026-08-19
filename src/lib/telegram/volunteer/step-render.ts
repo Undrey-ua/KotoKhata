@@ -11,6 +11,7 @@ import {
 } from "@/lib/telegram/volunteer/navigation";
 import {
   accessSkipEmailKeyboard,
+  curatorAddChoiceKeyboard,
   curatorSearchAnimalKeyboard,
   curatorSkipPhoneKeyboard,
   curatorsMenuKeyboard,
@@ -96,6 +97,15 @@ export async function renderSessionStep(ctx: Context, linked: LinkedVolunteer) {
       return;
 
     case TelegramSessionState.CURATOR_ADD_NAME:
+      if (session.context.curatorAddMode === "choice") {
+        await replyWithNav(ctx, MSG.curatorAddChoice, {
+          reply_markup: curatorAddChoiceKeyboard(
+            session.context.lastCuratorContact,
+          ),
+        });
+        return;
+      }
+
       await replyWithNav(ctx, MSG.curatorAddName);
       return;
 
@@ -132,9 +142,14 @@ export async function renderSessionStep(ctx: Context, linked: LinkedVolunteer) {
       return;
     }
 
-    case TelegramSessionState.CAT_SEARCH:
-      await replyWithNav(ctx, MSG.catSearchPrompt, { parse_mode: "Markdown" });
+    case TelegramSessionState.CAT_SEARCH: {
+      const prompt =
+        session.context.catSearchFlow === "curator_pick"
+          ? MSG.curatorSearchPrompt
+          : MSG.catSearchPrompt;
+      await replyWithNav(ctx, prompt, { parse_mode: "Markdown" });
       return;
+    }
 
     case TelegramSessionState.REQUEST_ACCESS_NAME:
       await replyWithNav(ctx, MSG.accessAskName);
@@ -203,7 +218,7 @@ export async function startCatSearchFlow(
   ctx: Context,
   chatId: bigint,
   shelterId: string,
-  flow: "lookup" | "curator",
+  flow: "lookup" | "curator" | "curator_pick",
 ) {
   const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
 
@@ -216,5 +231,8 @@ export async function startCatSearchFlow(
     shelterId,
   });
 
-  await replyWithNav(ctx, MSG.catSearchPrompt, { parse_mode: "Markdown" });
+  const prompt =
+    flow === "curator_pick" ? MSG.curatorSearchPrompt : MSG.catSearchPrompt;
+
+  await replyWithNav(ctx, prompt, { parse_mode: "Markdown" });
 }

@@ -19,7 +19,9 @@ export type CuratorDraft = {
   animalName?: string;
 };
 
-export type CatSearchFlow = "lookup" | "curator";
+export type CatSearchFlow = "lookup" | "curator" | "curator_pick";
+
+export type CuratorAddMode = "choice" | "new";
 
 export interface VolunteerSessionContext {
   photoFileId?: string;
@@ -33,6 +35,7 @@ export interface VolunteerSessionContext {
   navStack?: NavFrame[];
   curatorDraft?: CuratorDraft;
   lastCuratorContact?: CuratorContact;
+  curatorAddMode?: CuratorAddMode;
   catSearchFlow?: CatSearchFlow;
   lastHandledMessageId?: number;
 }

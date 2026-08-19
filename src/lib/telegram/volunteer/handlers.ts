@@ -27,6 +27,11 @@ import {
   searchShelterAnimalsByQuery,
 } from "@/lib/telegram/search-animal";
 import {
+  getShelterCuratorById,
+  searchShelterCuratorsByQuery,
+  type ShelterCuratorSearchHit,
+} from "@/lib/telegram/search-curator";
+import {
   claimTelegramSessionState,
   getTelegramSession,
   resetTelegramSession,
@@ -57,7 +62,8 @@ import {
   afterCuratorAddedKeyboard,
   animalPickKeyboard,
   catSearchDetailKeyboard,
-  curatorReuseKeyboard,
+  curatorAddChoiceKeyboard,
+  curatorPickKeyboard,
   curatorSearchAnimalKeyboard,
   curatorSkipPhoneKeyboard,
   MSG,
@@ -241,6 +247,18 @@ async function proceedAfterCuratorContact(ctx: Context, chatId: bigint) {
   }
 
   await proceedToCuratorPickAnimal(ctx, chatId);
+}
+
+async function selectExistingCurator(
+  ctx: Context,
+  linked: NonNullable<Awaited<ReturnType<typeof requireVolunteer>>>,
+  hit: ShelterCuratorSearchHit,
+) {
+  await startCuratorAddWithExistingContact(ctx, linked, {
+    fullName: hit.name,
+    email: hit.email,
+    phone: hit.phone,
+  });
 }
 
 async function startCuratorAddWithExistingContact(
@@ -651,27 +669,19 @@ async function startCuratorAddFlow(ctx: Context) {
 
   const chatId = BigInt(ctx.chat!.id);
   const session = await getTelegramSession(chatId, TelegramBotType.VOLUNTEER);
-  const lastContact = session.context.lastCuratorContact;
-
-  if (hasCuratorContact(lastContact)) {
-    await replyWithNav(
-      ctx,
-      MSG.curatorReusePrompt(lastContact.fullName, lastContact.email),
-      {
-        parse_mode: "Markdown",
-        reply_markup: curatorReuseKeyboard(),
-      },
-    );
-    return;
-  }
 
   await transitionSession(chatId, {
     state: TelegramSessionState.CURATOR_ADD_NAME,
-    contextData: { curatorDraft: {} },
+    contextData: {
+      curatorAddMode: "choice",
+      curatorDraft: {},
+    },
     shelterId: linked.shelter.id,
   });
 
-  await replyWithNav(ctx, MSG.curatorAddName);
+  await replyWithNav(ctx, MSG.curatorAddChoice, {
+    reply_markup: curatorAddChoiceKeyboard(session.context.lastCuratorContact),
+  });
 }
 
 async function handleCuratorName(ctx: Context, text: string) {
@@ -916,14 +926,36 @@ async function handleCatSearchQuery(ctx: Context, query: string) {
     });
   }
 
+  const flow = session.context.catSearchFlow ?? "lookup";
+
+  if (flow === "curator_pick") {
+    const curatorHits = await searchShelterCuratorsByQuery(
+      linked.shelter.id,
+      query,
+    );
+
+    if (!curatorHits.length) {
+      await replyWithNav(ctx, MSG.curatorSearchEmpty);
+      return;
+    }
+
+    if (curatorHits.length === 1) {
+      await selectExistingCurator(ctx, linked, curatorHits[0]!);
+      return;
+    }
+
+    await replyWithNav(ctx, MSG.curatorSearchPick, {
+      reply_markup: curatorPickKeyboard(curatorHits),
+    });
+    return;
+  }
+
   const hits = await searchShelterAnimalsByQuery(linked.shelter.id, query);
 
   if (!hits.length) {
     await replyWithNav(ctx, MSG.catSearchEmpty);
     return;
   }
-
-  const flow = session.context.catSearchFlow ?? "lookup";
 
   if (flow === "curator" && hits.length === 1) {
     await assignCuratorAnimal(ctx, linked, hits[0]!.id);
@@ -1214,10 +1246,31 @@ export function registerVolunteerHandlers(bot: Bot) {
     if (action === "new") {
       await transitionSession(chatId, {
         state: TelegramSessionState.CURATOR_ADD_NAME,
-        contextData: { curatorDraft: {} },
+        contextData: {
+          curatorAddMode: "new",
+          curatorDraft: {},
+        },
         shelterId: linked.shelter.id,
       });
       await replyWithNav(ctx, MSG.curatorAddName);
+      return;
+    }
+
+    if (action === "search_existing") {
+      await startCatSearchFlow(ctx, chatId, linked.shelter.id, "curator_pick");
+      return;
+    }
+
+    if (action.startsWith("select:")) {
+      const sponsorId = action.slice("select:".length);
+      const curator = await getShelterCuratorById(linked.shelter.id, sponsorId);
+
+      if (!curator) {
+        await replyWithNav(ctx, MSG.curatorSearchEmpty);
+        return;
+      }
+
+      await selectExistingCurator(ctx, linked, curator);
       return;
     }
 
@@ -1403,6 +1456,15 @@ export function registerVolunteerHandlers(bot: Bot) {
     }
 
     if (session.state === TelegramSessionState.CURATOR_ADD_NAME) {
+      if (session.context.curatorAddMode === "choice") {
+        await replyWithNav(ctx, MSG.curatorChooseButton, {
+          reply_markup: curatorAddChoiceKeyboard(
+            session.context.lastCuratorContact,
+          ),
+        });
+        return;
+      }
+
       await handleCuratorName(ctx, text);
       return;
     }

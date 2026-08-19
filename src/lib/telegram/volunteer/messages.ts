@@ -74,6 +74,8 @@ export const MSG = {
   curatorsMenu: "👤 *Куратори*",
   curatorsEmpty: "Поки немає кураторів.",
   curatorsListHeader: (total: number) => `📋 *Куратори* (${total})`,
+  curatorAddChoice: "Як додати кураторство?",
+  curatorChooseButton: "Оберіть варіант кнопками вище 👆",
   curatorAddName: "Ім'я куратора (ПІБ):",
   curatorAddEmail: "Email куратора:",
   curatorAddPhone:
@@ -90,10 +92,12 @@ export const MSG = {
   curatorInvalidAmount: "Вкажіть додатну суму в гривнях.",
   curatorAdded: (curatorName: string, animalName: string, amount: number) =>
     `✅ Куратора *${curatorName}* додано до *${animalName}* (${amount} ₴/міс).`,
-  curatorReusePrompt: (fullName: string, email: string) =>
-    `Нещодавно ви додавали *${fullName}* (${email}).\n\nДодати котика цьому куратору чи ввести дані нового?`,
   curatorPickAnimalFor: (fullName: string) =>
     `Оберіть котика для *${fullName}*.\n\nНатисніть «Пошук котика», потім введіть *ім'я* або *slug* підопічного.`,
+  curatorSearchPrompt: "Введіть *ім'я* або *email* куратора:",
+  curatorSearchEmpty:
+    "Кураторів не знайдено. Спробуйте інший запит або додайте нового.",
+  curatorSearchPick: "Оберіть куратора з результатів:",
   curatorAddFailed: "Не вдалося додати куратора. Спробуйте через CRM.",
   curatorAddIncomplete:
     "Дані куратора втрачено. Почніть додавання знову через меню «Куратори».",
@@ -168,18 +172,49 @@ export function curatorsMenuKeyboard(options?: { showAddAnother?: boolean }) {
   return keyboard;
 }
 
+export function curatorAddChoiceKeyboard(
+  lastContact?: { fullName: string; email: string } | null,
+) {
+  const keyboard = new InlineKeyboard();
+
+  if (lastContact?.fullName && lastContact.email) {
+    const label =
+      lastContact.fullName.length > 28
+        ? `${lastContact.fullName.slice(0, 25)}…`
+        : lastContact.fullName;
+    keyboard.text(`✅ ${label}`, "curator:reuse_last").row();
+  }
+
+  keyboard
+    .text("🔍 Існуючий куратор", "curator:search_existing")
+    .row()
+    .text("➕ Новий куратор", "curator:new");
+
+  return keyboard;
+}
+
+export function curatorPickKeyboard(
+  curators: Array<{ id: string; name: string; email: string }>,
+) {
+  const keyboard = new InlineKeyboard();
+
+  for (const curator of curators) {
+    const label =
+      curator.name.length > 24
+        ? `${curator.name.slice(0, 21)}…`
+        : curator.name;
+    keyboard.row().text(label, `curator:select:${curator.id}`);
+  }
+
+  return keyboard;
+}
+
 export function afterCuratorAddedKeyboard() {
   return new InlineKeyboard()
     .text("➕ Ще котик цьому куратору", "curator:add_another")
     .row()
     .text("👤 Куратори", "menu:curators")
     .text("🏠 Головне меню", "nav:home");
-}
-
-export function curatorReuseKeyboard() {
-  return new InlineKeyboard()
-    .text("✅ Цей куратор", "curator:reuse_last")
-    .text("➕ Новий куратор", "curator:new");
 }
 
 export function afterAnimalKeyboard() {
