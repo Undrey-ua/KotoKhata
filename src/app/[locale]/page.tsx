@@ -132,12 +132,21 @@ export default async function HomePage({
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:mx-0 lg:ml-auto lg:max-w-lg">
-            <p className="mb-3 text-center text-sm font-medium text-muted-foreground lg:text-left">
-              {t("progressTitle")}
-            </p>
-            <p className="mb-4 text-center text-sm leading-relaxed text-muted-foreground lg:text-left">
-              {t("progressSubtitle")}
-            </p>
+            <div className="relative mb-5 overflow-hidden rounded-2xl border border-border-cool/70 bg-card/70 px-4 py-4 shadow-sm backdrop-blur-sm sm:px-5">
+              <div
+                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary via-primary/80 to-warm/80"
+                aria-hidden
+              />
+              <p className="text-pretty pl-2 text-[15px] leading-relaxed tracking-tight sm:text-base">
+                <span className="font-semibold text-foreground">
+                  {t("progressMissionLead")}
+                </span>
+                <span className="text-muted-foreground">
+                  {": "}
+                  {t("progressMission")}
+                </span>
+              </p>
+            </div>
             <HomepageSpotlightCats
               shelterSlug={SHELTER_SLUG}
               latestNew={latestNew}
